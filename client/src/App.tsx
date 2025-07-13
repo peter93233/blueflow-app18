@@ -6,18 +6,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationContainer } from "@/components/ui/notification-toast";
 import { useNotifications } from "@/hooks/use-notifications";
 import SimpleHome from "@/pages/simple-home";
-import AddExpense from "@/pages/add-expense";
-import BudgetSettings from "@/pages/budget-settings";
-import Reports from "@/pages/reports";
+import SimpleBudgetSettings from "@/pages/simple-budget-settings";
+import SimpleReports from "@/pages/simple-reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={SimpleHome} />
-      <Route path="/add-expense" component={AddExpense} />
-      <Route path="/budget-settings" component={BudgetSettings} />
-      <Route path="/reports" component={Reports} />
+      <Route path="/add-expense" component={SimpleHome} />
+      <Route path="/budget-settings" component={SimpleBudgetSettings} />
+      <Route path="/reports" component={SimpleReports} />
       <Route component={NotFound} />
     </Switch>
   );
