@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive, Mic } from "lucide-react";
+import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive, Mic, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
@@ -22,6 +23,7 @@ interface Expense {
 }
 
 export default function SimpleHome() {
+  const { user, logout } = useAuth();
   const [balance, setBalance] = useState(3200);
   const [showBalanceEdit, setShowBalanceEdit] = useState(false);
   const [newBalance, setNewBalance] = useState("");
@@ -207,12 +209,26 @@ export default function SimpleHome() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center pt-8 pb-6"
+          className="text-center pt-8 pb-6 relative"
         >
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
             BlueFlow
           </h1>
           <p className="text-slate-600 text-sm font-medium">Smart Budget Tracker</p>
+          
+          {/* Welcome message and logout button */}
+          <div className="absolute top-8 right-4 flex items-center gap-2">
+            <span className="text-sm text-slate-600">
+              Welcome, {user?.name || user?.email}
+            </span>
+            <button
+              onClick={logout}
+              className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </motion.div>
 
         {/* Top Balance Widgets */}

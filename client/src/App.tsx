@@ -5,31 +5,45 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationContainer } from "@/components/ui/notification-toast";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider } from "@/lib/auth";
+import { AuthGuard } from "@/components/auth-guard";
 import SimpleHome from "@/pages/simple-home";
 import SimpleBudgetSettings from "@/pages/simple-budget-settings";
 import SimpleReports from "@/pages/simple-reports";
 import ArchiveViewer from "@/pages/archive-viewer";
 import AddExpense from "@/pages/add-expense";
-import { Landing } from "@/pages/landing";
+import { Login } from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={SimpleHome} />
-          <Route path="/add-expense" component={AddExpense} />
-          <Route path="/budget-settings" component={SimpleBudgetSettings} />
-          <Route path="/reports" component={SimpleReports} />
-          <Route path="/archive" component={ArchiveViewer} />
-        </>
-      )}
+      <Route path="/login" component={Login} />
+      <Route path="/">
+        <AuthGuard>
+          <SimpleHome />
+        </AuthGuard>
+      </Route>
+      <Route path="/add-expense">
+        <AuthGuard>
+          <AddExpense />
+        </AuthGuard>
+      </Route>
+      <Route path="/budget-settings">
+        <AuthGuard>
+          <SimpleBudgetSettings />
+        </AuthGuard>
+      </Route>
+      <Route path="/reports">
+        <AuthGuard>
+          <SimpleReports />
+        </AuthGuard>
+      </Route>
+      <Route path="/archive">
+        <AuthGuard>
+          <ArchiveViewer />
+        </AuthGuard>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -39,13 +53,13 @@ function AppContent() {
   const { activeToasts, dismissToast } = useNotifications();
 
   return (
-    <>
+    <AuthProvider>
       <Router />
       <NotificationContainer 
         notifications={activeToasts}
         onDismiss={dismissToast}
       />
-    </>
+    </AuthProvider>
   );
 }
 

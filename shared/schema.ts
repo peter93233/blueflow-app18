@@ -23,13 +23,15 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for both OAuth and traditional auth
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(), // Changed to varchar for OAuth compatibility
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+  id: varchar("id").primaryKey().notNull(), // OAuth compatibility
+  email: varchar("email").unique().notNull(),
+  name: varchar("name"), // For traditional auth
+  password: varchar("password"), // For traditional auth (hashed)
+  firstName: varchar("first_name"), // For OAuth
+  lastName: varchar("last_name"), // For OAuth
+  profileImageUrl: varchar("profile_image_url"), // For OAuth
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -92,9 +94,22 @@ export const userBalancesRelations = relations(userBalances, ({ one }) => ({
 export const insertUserSchema = z.object({
   id: z.string(),
   email: z.string().email().optional(),
+  name: z.string().optional(),
+  password: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   profileImageUrl: z.string().optional(),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+export const registerSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(6),
 });
 
 export const insertExpenseSchema = z.object({
