@@ -36,11 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const userData = await apiRequest("/api/auth/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiRequest("GET", "/api/auth/user");
+      const userData = await response.json();
       
       setUser(userData);
     } catch (error) {
@@ -52,13 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiRequest("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await apiRequest("POST", "/api/auth/login", { email, password });
+      const data = await response.json();
 
-      localStorage.setItem("auth_token", response.token);
-      setUser(response.user);
+      localStorage.setItem("auth_token", data.token);
+      setUser(data.user);
     } catch (error) {
       throw error;
     }
@@ -66,13 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await apiRequest("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name, email, password }),
-      });
+      const response = await apiRequest("POST", "/api/auth/register", { name, email, password });
+      const data = await response.json();
 
-      localStorage.setItem("auth_token", response.token);
-      setUser(response.user);
+      localStorage.setItem("auth_token", data.token);
+      setUser(data.user);
     } catch (error) {
       throw error;
     }

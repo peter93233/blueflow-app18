@@ -29,7 +29,8 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Hot module replacement with Vite middleware integration
 
 ### Database Schema
-- **Users Table**: Basic user authentication with username/password
+- **Users Table**: Supports both traditional authentication (name, email, password) and OAuth (firstName, lastName, profileImageUrl)
+- **Sessions Table**: Secure session storage for authentication state management
 - **Expenses Table**: User expenses with name, amount, category, date, and timestamps
 - **Budgets Table**: User budget settings with amount, period (weekly/biweekly/monthly)
 - **User Balances Table**: Current account balance for each user
@@ -56,17 +57,21 @@ Preferred communication style: Simple, everyday language.
    - Reports: Visual placeholder for spending analytics and charts
 
 ### Backend Components
-1. **Database Integration**: PostgreSQL database with Drizzle ORM for expenses, budgets, and user balances
-2. **Storage Interface**: Database storage implementation with comprehensive CRUD operations
-3. **API Routes**: RESTful endpoints for expenses, budgets, and user balances with data validation
-4. **Route Registration**: Centralized route management system
-5. **Error Handling**: Global error middleware for consistent error responses
-6. **Development Integration**: Vite middleware for seamless development experience
+1. **Database Integration**: PostgreSQL database with Drizzle ORM for expenses, budgets, user balances, and authentication
+2. **Authentication System**: Complete JWT-based authentication with bcrypt password hashing
+3. **Storage Interface**: Database storage implementation with comprehensive CRUD operations for users and financial data
+4. **API Routes**: RESTful endpoints for authentication, expenses, budgets, and user balances with Zod validation
+5. **Route Registration**: Centralized route management system with authentication middleware
+6. **Error Handling**: Global error middleware for consistent error responses
+7. **Development Integration**: Vite middleware for seamless development experience
 
 ### Authentication & Authorization
-- User model with username/password authentication
-- Session-based authentication using PostgreSQL session store
-- Protected routes structure ready for implementation
+- **Simple Email/Password Authentication**: Complete registration and login system with secure password hashing
+- **JWT Token Authentication**: 7-day token expiration with automatic refresh capability
+- **Dual Authentication Support**: Both traditional email/password and OAuth (Replit) authentication methods
+- **Security Features**: bcrypt password hashing, input validation, protected API routes
+- **User Experience**: Beautiful glassmorphism login/registration forms with real-time validation
+- **Session Management**: Secure token storage and automatic authentication state management
 
 ## Data Flow
 
