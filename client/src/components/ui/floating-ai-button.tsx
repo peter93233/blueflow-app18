@@ -14,17 +14,21 @@ export default function FloatingAIButton() {
         onClick={handleAIClick}
         animate={{
           y: [0, -10, 0],
+          opacity: 1,
+          scale: 1
         }}
         transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut"
+          y: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          },
+          opacity: { delay: 1, duration: 0.5 },
+          scale: { delay: 1, duration: 0.5 }
         }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
       >
         <Lightbulb className="w-7 h-7 text-white" />
       </motion.button>

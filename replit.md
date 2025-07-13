@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack web application for budget tracking and financial management. The project is built with a React frontend using TypeScript and Vite, an Express.js backend with TypeScript, and uses Drizzle ORM for database management with PostgreSQL. The application features a modern UI built with shadcn/ui components, Tailwind CSS, and Framer Motion animations.
+This is a full-stack web application for budget tracking and financial management called BlueFlow. The project is built with a React frontend using TypeScript and Vite, an Express.js backend with TypeScript, and uses Drizzle ORM for database management with PostgreSQL. The application features a modern UI built with shadcn/ui components, Tailwind CSS, and Framer Motion animations with iOS-inspired neumorphism design and glass morphism effects.
 
 ## User Preferences
 
@@ -39,12 +39,17 @@ Preferred communication style: Simple, everyday language.
 1. **UI Components**: Complete shadcn/ui component library including buttons, cards, forms, navigation, etc.
 2. **Budget Components**: 
    - BalanceCard: Displays current balance with update functionality
-   - BudgetCard: Shows weekly budget progress with visual indicators
+   - BudgetCard: Shows weekly budget progress with visual indicators and links to Add Expense
    - QuickActions: Provides shortcuts to analytics and goals
-   - BottomNavigation: Mobile-friendly navigation bar
-   - FloatingAIButton: AI assistant integration placeholder
+   - BottomNavigation: Mobile-friendly navigation bar with routing to different screens
+   - FloatingAIButton: AI assistant integration placeholder with smooth animations
 3. **Layout**: Mobile-first responsive design optimized for smartphone usage
-4. **Theming**: Custom blue flow color palette with light/dark mode support
+4. **Theming**: Custom BlueFlow color palette with neumorphism effects and glass morphism buttons
+5. **Pages**: 
+   - Home: Main dashboard with balance, budget tracker, and quick actions
+   - Add Expense: Form to add new expenses with category selection
+   - Budget Settings: Configure weekly/biweekly/monthly budget limits
+   - Reports: Visual placeholder for spending analytics and charts
 
 ### Backend Components
 1. **Storage Interface**: Abstracted storage layer with in-memory implementation

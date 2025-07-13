@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Button } from "./button";
+import { useLocation } from "wouter";
 
 interface BudgetData {
   spent: number;
@@ -15,9 +16,10 @@ interface BudgetCardProps {
 }
 
 export default function BudgetCard({ budgetData }: BudgetCardProps) {
+  const [, setLocation] = useLocation();
+
   const handleAddExpense = () => {
-    console.log('Add Expense clicked');
-    // TODO: Implement add expense functionality
+    setLocation('/add-expense');
   };
 
   return (

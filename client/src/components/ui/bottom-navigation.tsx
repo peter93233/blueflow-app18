@@ -1,23 +1,27 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { LayoutDashboard, DollarSign, Clock, BarChart3 } from "lucide-react";
+import { useLocation } from "wouter";
 
 type NavItem = 'dashboard' | 'budget' | 'history' | 'reports';
 
 export default function BottomNavigation() {
+  const [, setLocation] = useLocation();
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
 
   const navItems = [
-    { id: 'dashboard' as NavItem, icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'budget' as NavItem, icon: DollarSign, label: 'Budget' },
-    { id: 'history' as NavItem, icon: Clock, label: 'History' },
-    { id: 'reports' as NavItem, icon: BarChart3, label: 'Reports' },
+    { id: 'dashboard' as NavItem, icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    { id: 'budget' as NavItem, icon: DollarSign, label: 'Budget', path: '/budget-settings' },
+    { id: 'history' as NavItem, icon: Clock, label: 'History', path: '/' },
+    { id: 'reports' as NavItem, icon: BarChart3, label: 'Reports', path: '/reports' },
   ];
 
   const handleNavClick = (navId: NavItem) => {
     setActiveNav(navId);
-    console.log(`Navigation clicked: ${navId}`);
-    // TODO: Implement navigation routing
+    const navItem = navItems.find(item => item.id === navId);
+    if (navItem) {
+      setLocation(navItem.path);
+    }
   };
 
   return (
