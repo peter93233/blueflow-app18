@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain } from "lucide-react";
-import { AssistantModal } from "./assistant-modal";
-import { NotificationSystem, NotificationManager } from "@/lib/notification-system";
+import { AIAssistantModal } from "./ai-assistant-modal";
+import { AIAssistant } from "@/lib/ai-assistant";
 
 interface FloatingAIButtonProps {
   className?: string;
@@ -14,9 +14,6 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
   const [showPulse, setShowPulse] = useState(false);
 
   useEffect(() => {
-    // Initialize notification system
-    NotificationSystem.initialize();
-    
     // Update unread count
     updateUnreadCount();
     
@@ -29,7 +26,8 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
   }, []);
 
   const updateUnreadCount = () => {
-    const count = NotificationManager.getUnreadCount();
+    const notifications = AIAssistant.getRecentNotifications();
+    const count = notifications.filter(n => !n.read).length;
     setUnreadCount(count);
     
     // Show pulse animation for new notifications
@@ -43,10 +41,10 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
     setIsModalOpen(true);
     
     // Mark recent notifications as read when opening modal
-    const recentNotifications = NotificationManager.getRecentNotifications(3);
+    const recentNotifications = AIAssistant.getRecentNotifications();
     recentNotifications.forEach(notification => {
       if (!notification.read) {
-        NotificationManager.markAsRead(notification.id);
+        AIAssistant.markNotificationAsRead(notification.id);
       }
     });
     
@@ -110,11 +108,10 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
         </motion.button>
       </div>
 
-      {/* Assistant Modal */}
-      <AssistantModal
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        unreadCount={unreadCount}
       />
     </>
   );

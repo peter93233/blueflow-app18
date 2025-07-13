@@ -6,6 +6,7 @@ import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { ArchiveManager } from "@/lib/archive-manager";
+import { AIAssistant } from "@/lib/ai-assistant";
 
 interface Expense {
   id: string;
@@ -46,6 +47,9 @@ export default function SimpleHome() {
 
     loadExpenses();
     
+    // Initialize demo notifications
+    initializeDemoNotifications();
+    
     // Listen for expense additions
     const handleExpenseAdded = () => {
       loadExpenses();
@@ -54,6 +58,28 @@ export default function SimpleHome() {
     window.addEventListener('expenseAdded', handleExpenseAdded);
     return () => window.removeEventListener('expenseAdded', handleExpenseAdded);
   }, []);
+
+  const initializeDemoNotifications = () => {
+    const existingNotifications = AIAssistant.getRecentNotifications();
+    if (existingNotifications.length === 0) {
+      // Add some demo notifications
+      AIAssistant.addNotification({
+        type: 'balance_update',
+        title: 'Welcome to BlueFlow',
+        message: 'Your AI assistant is ready to help with financial insights!',
+        read: false,
+        icon: '✅'
+      });
+      
+      AIAssistant.addNotification({
+        type: 'monthly_reminder',
+        title: 'Monthly Archive Tip',
+        message: 'Remember to save your current month when you want to start fresh!',
+        read: false,
+        icon: '💡'
+      });
+    }
+  };
 
   const handleBalanceUpdate = () => {
     const amount = parseFloat(newBalance);
@@ -89,6 +115,15 @@ export default function SimpleHome() {
   const handleSaveMonth = () => {
     const savedMonth = ArchiveManager.saveCurrentMonth();
     if (savedMonth) {
+      // Add notification about successful archive
+      AIAssistant.addNotification({
+        type: 'achievement',
+        title: 'Month Archived Successfully',
+        message: `${savedMonth.monthName} saved with ${savedMonth.expenseCount} transactions totaling ${formatCurrency(savedMonth.totalExpenses)}`,
+        read: false,
+        icon: '🎉'
+      });
+      
       alert(`Month saved! ${savedMonth.monthName} has been archived with ${savedMonth.expenseCount} transactions totaling ${formatCurrency(savedMonth.totalExpenses)}`);
       
       // Refresh the page to show cleared expenses
