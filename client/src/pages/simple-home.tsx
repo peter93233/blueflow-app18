@@ -239,18 +239,47 @@ export default function SimpleHome() {
 
         {/* Top Balance Widgets */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
           className="grid grid-cols-3 gap-3 mt-4"
         >
           {topWidgets.map((widget, index) => (
-            <div key={index} className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                delay: 0.2 + index * 0.1, 
+                duration: 0.5, 
+                ease: "easeOut" 
+              }}
+              whileHover={{ 
+                scale: 1.05, 
+                y: -2,
+                transition: { duration: 0.2 }
+              }}
+              className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            >
               <div className="text-center">
-                <p className="text-2xl font-bold text-slate-800">${widget.amount}</p>
-                <p className="text-xs text-slate-600 mt-1 font-medium">{widget.label}</p>
+                <motion.p
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
+                  className="text-2xl font-bold text-slate-800"
+                >
+                  ${widget.amount}
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                  className="text-xs text-slate-600 mt-1 font-medium"
+                >
+                  {widget.label}
+                </motion.p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
 
@@ -271,8 +300,31 @@ export default function SimpleHome() {
           
           <div className="grid grid-cols-4 gap-4">
             {weeklySpendingCharts.map((chart, index) => (
-              <div key={index} className="text-center">
-                <div className="relative w-16 h-16 mx-auto mb-2">
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                  delay: 0.6 + index * 0.15, 
+                  duration: 0.5, 
+                  ease: "easeOut" 
+                }}
+                whileHover={{ 
+                  scale: 1.1, 
+                  transition: { duration: 0.2 }
+                }}
+                className="text-center"
+              >
+                <motion.div
+                  initial={{ rotate: -180, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  transition={{ 
+                    delay: 0.7 + index * 0.15, 
+                    duration: 0.8, 
+                    ease: "easeOut" 
+                  }}
+                  className="relative w-16 h-16 mx-auto mb-2"
+                >
                   <Doughnut
                     data={{
                       datasets: [{
@@ -281,12 +333,34 @@ export default function SimpleHome() {
                         borderWidth: 0
                       }]
                     }}
-                    options={chartOptions}
+                    options={{
+                      ...chartOptions,
+                      animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000,
+                        delay: (index * 200) + 800
+                      }
+                    }}
                   />
-                </div>
-                <p className="text-xs font-medium text-slate-800">${chart.amount}</p>
-                <p className="text-xs text-slate-500">{chart.category}</p>
-              </div>
+                </motion.div>
+                <motion.p
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.9 + index * 0.1, duration: 0.3 }}
+                  className="text-xs font-medium text-slate-800"
+                >
+                  ${chart.amount}
+                </motion.p>
+                <motion.p
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 1.0 + index * 0.1, duration: 0.3 }}
+                  className="text-xs text-slate-500"
+                >
+                  {chart.category}
+                </motion.p>
+              </motion.div>
             ))}
           </div>
         </motion.div>
@@ -306,9 +380,28 @@ export default function SimpleHome() {
             </div>
           </div>
           
-          <div className="h-32 mb-4">
-            <Line data={incomeData} options={lineChartOptions} />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scaleY: 0.3 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            transition={{ 
+              delay: 0.8, 
+              duration: 0.8, 
+              ease: "easeOut" 
+            }}
+            className="h-32 mb-4"
+          >
+            <Line 
+              data={incomeData} 
+              options={{
+                ...lineChartOptions,
+                animation: {
+                  duration: 1200,
+                  delay: 1000,
+                  easing: 'easeInOutQuart'
+                }
+              }} 
+            />
+          </motion.div>
           
           <div className="flex justify-between text-xs text-slate-500">
             <span>$0-$1,000</span>
@@ -328,13 +421,51 @@ export default function SimpleHome() {
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Smart Budget Track</h3>
           
           <div className="text-center mb-6">
-            <p className="text-3xl font-bold text-slate-800">$610.00</p>
+            <motion.p
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                delay: 1.2, 
+                duration: 0.6, 
+                ease: "easeOut" 
+              }}
+              className="text-3xl font-bold text-slate-800"
+            >
+              $610.00
+            </motion.p>
             
-            <div className="mt-4 mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                delay: 1.4, 
+                duration: 0.5, 
+                ease: "easeOut" 
+              }}
+              whileHover={{ 
+                scale: 1.1, 
+                transition: { duration: 0.2 }
+              }}
+              className="mt-4 mb-4"
+            >
+              <motion.div
+                animate={{ 
+                  boxShadow: [
+                    "0 0 0 0 rgba(147, 51, 234, 0.4)",
+                    "0 0 0 10px rgba(147, 51, 234, 0.1)",
+                    "0 0 0 20px rgba(147, 51, 234, 0)"
+                  ]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+                className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto cursor-pointer"
+              >
                 <Mic className="w-8 h-8 text-white" />
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
             
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-lg p-3">

@@ -2,75 +2,52 @@
  * Notification Hook for BlueFlow
  * Manages toast notifications and integrates with the finance system
  */
-
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
-import { 
-  Notification, 
-  NotificationManager, 
-  NotificationSystem,
-  SmartTipsGenerator,
-  BudgetAlertSystem 
-} from "@/lib/notification-system";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { NotificationService, type Notification } from '@/lib/notification-service';
 
 export function useNotifications() {
   const [activeToasts, setActiveToasts] = useState<Notification[]>([]);
-  const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
 
-  useEffect(() => {
-    // Load existing notifications
-    setAllNotifications(NotificationManager.getNotifications());
-  }, []);
-
-  const showToast = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification = NotificationManager.addNotification(notification);
+  const showToast = (notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    NotificationService.addNotification(notification);
+    const newNotification: Notification = {
+      ...notification,
+      id: `toast_${Date.now()}`,
+      timestamp: new Date()
+    };
     
-    // Add to active toasts
     setActiveToasts(prev => [...prev, newNotification]);
     
-    // Update all notifications
-    setAllNotifications(NotificationManager.getNotifications());
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setActiveToasts(prev => prev.filter(toast => toast.id !== newNotification.id));
+    }, 5000);
     
     return newNotification;
-  }, []);
+  };
 
-  const dismissToast = useCallback((id: string) => {
+  const dismissToast = (id: string) => {
     setActiveToasts(prev => prev.filter(toast => toast.id !== id));
-    NotificationManager.markAsRead(id);
-  }, []);
+  };
 
-  const clearAllToasts = useCallback(() => {
-    setActiveToasts([]);
-  }, []);
-
-  const triggerBudgetCheck = useCallback((expenses: any[], budget: any, categoryTotals: Record<string, number>) => {
-    NotificationSystem.checkBudgetAndGenerateTips(expenses, budget, categoryTotals);
+  const triggerBudgetCheck = (expenses: any[], budget: any, categoryTotals: Record<string, number>) => {
+    // Calculate current spending
+    const currentSpending = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const weeklyBudget = budget?.amount || 500;
     
-    // Refresh notifications
-    setAllNotifications(NotificationManager.getNotifications());
-  }, []);
-
-  const getUnreadCount = useCallback(() => {
-    return NotificationManager.getUnreadCount();
-  }, []);
-
-  const markAsRead = useCallback((id: string) => {
-    NotificationManager.markAsRead(id);
-    setAllNotifications(NotificationManager.getNotifications());
-  }, []);
+    // Run notification checks
+    NotificationService.checkBudgetAlerts(currentSpending, weeklyBudget);
+    NotificationService.generateSpendingTips(categoryTotals);
+  };
 
   return {
     activeToasts,
-    allNotifications,
     showToast,
     dismissToast,
-    clearAllToasts,
-    triggerBudgetCheck,
-    getUnreadCount,
-    markAsRead,
+    triggerBudgetCheck
   };
 }
 
-// Context for accessing notifications system-wide
 interface NotificationContextType {
   activeToasts: Notification[];
   showToast: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => Notification;
@@ -81,13 +58,22 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const notifications = useNotifications();
+  const notificationUtils = useNotifications();
+
+  // Generate initial notifications on app start
+  useEffect(() => {
+    const hasInitialNotifications = localStorage.getItem('blueflow_notifications');
+    if (!hasInitialNotifications) {
+      // Generate some initial notifications for demo
+      NotificationService.runWeeklyAnalysis();
+    }
+  }, []);
 
   const contextValue: NotificationContextType = {
-    activeToasts: notifications.activeToasts,
-    showToast: notifications.showToast,
-    dismissToast: notifications.dismissToast,
-    triggerBudgetCheck: notifications.triggerBudgetCheck,
+    activeToasts: notificationUtils.activeToasts,
+    showToast: notificationUtils.showToast,
+    dismissToast: notificationUtils.dismissToast,
+    triggerBudgetCheck: notificationUtils.triggerBudgetCheck
   };
 
   return (
@@ -99,7 +85,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 export function useNotificationContext() {
   const context = useContext(NotificationContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useNotificationContext must be used within a NotificationProvider');
   }
   return context;

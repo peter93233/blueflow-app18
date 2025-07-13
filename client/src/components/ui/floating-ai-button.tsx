@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain } from "lucide-react";
-import { AIAssistantModal } from "./ai-assistant-modal";
-import { AIAssistant } from "@/lib/ai-assistant";
+import { Brain, Bell } from "lucide-react";
+import { AINotificationsModal } from "./ai-notifications-modal";
+import { NotificationService } from "@/lib/notification-service";
 
 interface FloatingAIButtonProps {
   className?: string;
@@ -26,8 +26,8 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
   }, []);
 
   const updateUnreadCount = () => {
-    const notifications = AIAssistant.getRecentNotifications();
-    const count = notifications.filter(n => !n.read).length;
+    const notifications = NotificationService.getNotifications();
+    const count = notifications.length;
     setUnreadCount(count);
     
     // Show pulse animation for new notifications
@@ -40,15 +40,7 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
   const handleClick = () => {
     setIsModalOpen(true);
     
-    // Mark recent notifications as read when opening modal
-    const recentNotifications = AIAssistant.getRecentNotifications();
-    recentNotifications.forEach(notification => {
-      if (!notification.read) {
-        AIAssistant.markNotificationAsRead(notification.id);
-      }
-    });
-    
-    // Update count after marking as read
+    // Update count after opening modal
     setTimeout(updateUnreadCount, 100);
   };
 
@@ -76,22 +68,21 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, scale: 0 }}
         >
-          <Brain className="w-7 h-7 text-white relative z-10" />
-          
-          {/* Notification badge */}
-          <AnimatePresence>
+          <div className="relative">
+            <Brain className="w-7 h-7 text-white relative z-10" />
             {unreadCount > 0 && (
               <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg z-20"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
               >
-                {unreadCount > 9 ? '9+' : unreadCount}
+                <span className="text-white text-xs font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               </motion.div>
             )}
-          </AnimatePresence>
+          </div>
+
 
           {/* Pulse animation for new notifications */}
           <AnimatePresence>
@@ -109,7 +100,7 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
       </div>
 
       {/* AI Assistant Modal */}
-      <AIAssistantModal
+      <AINotificationsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
