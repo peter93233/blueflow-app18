@@ -7,10 +7,10 @@ import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { ArchiveManager } from "@/lib/archive-manager";
 import { AIAssistant } from "@/lib/ai-assistant";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler);
 
 interface Expense {
   id: string;
@@ -201,21 +201,18 @@ export default function SimpleHome() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 via-blue-50 to-cyan-50 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
+        {/* Header with BlueFlow Logo */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between pt-8 pb-4"
+          className="text-center pt-8 pb-6"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-orange-400 rounded-full flex items-center justify-center">
-              <Plus className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-slate-800 font-medium">With Assistant Icon</span>
-          </div>
-          <div className="w-6 h-6 bg-orange-100 rounded-md"></div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+            BlueFlow
+          </h1>
+          <p className="text-slate-600 text-sm font-medium">Smart Budget Tracker</p>
         </motion.div>
 
         {/* Top Balance Widgets */}
@@ -223,13 +220,13 @@ export default function SimpleHome() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-3"
+          className="grid grid-cols-3 gap-3 mt-4"
         >
           {topWidgets.map((widget, index) => (
-            <div key={index} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg">
+            <div key={index} className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="text-center">
                 <p className="text-2xl font-bold text-slate-800">${widget.amount}</p>
-                <p className="text-xs text-slate-600 mt-1">{widget.label}</p>
+                <p className="text-xs text-slate-600 mt-1 font-medium">{widget.label}</p>
               </div>
             </div>
           ))}
@@ -240,7 +237,7 @@ export default function SimpleHome() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg"
+          className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-800">Weekly Spending</h3>
@@ -277,7 +274,7 @@ export default function SimpleHome() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg"
+          className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-800">Income Breakdown</h3>
@@ -304,7 +301,7 @@ export default function SimpleHome() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-lg"
+          className="bg-white/70 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Smart Budget Track</h3>
           
