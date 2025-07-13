@@ -10,8 +10,10 @@ import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { BudgetProgress } from "@/components/dashboard/budget-progress";
 import { BottomNavigation } from "@/components/navigation/bottom-nav";
 import { ResponsiveContainer } from "@/components/layout/responsive-container";
+import { AIAssistant } from "@/lib/ai-assistant";
+import { ArchiveManager } from "@/lib/archive-manager";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler } from 'chart.js';
-import { Doughnut, Line } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler);
 
