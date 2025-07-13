@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { useNotifications } from "@/hooks/use-notifications";
+import { AddExpenseModal } from "@/components/ui/add-expense-modal";
 
 export default function Home() {
   const { balance, budget, progress, expenses, categoryTotals } = useFinance();
@@ -11,6 +12,7 @@ export default function Home() {
   const { triggerBudgetCheck, showToast } = useNotifications();
   const [showBalanceEdit, setShowBalanceEdit] = useState(false);
   const [newBalance, setNewBalance] = useState("");
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
 
   // Initialize with demo notification on first load
   useEffect(() => {
@@ -196,13 +198,14 @@ export default function Home() {
         <div className="float-card hover-lift glow-on-hover">
           <h3 className="text-lg font-bold gradient-text-primary mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
-            <Link href="/add-expense">
-              <button className="glass-button-accent w-full p-4 text-left">
-                <Plus className="w-6 h-6 mb-2" />
-                <div className="font-semibold">Add Expense</div>
-                <div className="text-xs opacity-80">Track spending</div>
-              </button>
-            </Link>
+            <button 
+              onClick={() => setShowAddExpenseModal(true)}
+              className="glass-button-primary w-full p-4 text-left hover-lift"
+            >
+              <Plus className="w-6 h-6 mb-2" />
+              <div className="font-semibold">Add Expense</div>
+              <div className="text-xs opacity-80">Track spending</div>
+            </button>
             <Link href="/reports">
               <button className="glass-button-secondary w-full p-4 text-left">
                 <BarChart3 className="w-6 h-6 mb-2" />
@@ -273,12 +276,13 @@ export default function Home() {
                 <span className="text-xs">Dashboard</span>
               </button>
             </Link>
-            <Link href="/add-expense">
-              <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
-                <Plus className="w-6 h-6" />
-                <span className="text-xs">Add</span>
-              </button>
-            </Link>
+            <button 
+              onClick={() => setShowAddExpenseModal(true)}
+              className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <Plus className="w-6 h-6" />
+              <span className="text-xs">Add</span>
+            </button>
             <Link href="/reports">
               <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
                 <TrendingUp className="w-6 h-6" />
@@ -296,6 +300,12 @@ export default function Home() {
 
         {/* AI Assistant Floating Button */}
         <FloatingAIButton />
+
+        {/* Add Expense Modal */}
+        <AddExpenseModal 
+          isOpen={showAddExpenseModal} 
+          onClose={() => setShowAddExpenseModal(false)} 
+        />
       </div>
     </div>
   );
