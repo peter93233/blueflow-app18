@@ -30,8 +30,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 - **Users Table**: Basic user authentication with username/password
+- **Expenses Table**: User expenses with name, amount, category, date, and timestamps
+- **Budgets Table**: User budget settings with amount, period (weekly/biweekly/monthly)
+- **User Balances Table**: Current account balance for each user
 - **Database Provider**: Neon Database (serverless PostgreSQL)
 - **Migration System**: Drizzle Kit for schema migrations
+- **Relations**: Proper foreign key relationships between users and their financial data
 
 ## Key Components
 
@@ -52,10 +56,12 @@ Preferred communication style: Simple, everyday language.
    - Reports: Visual placeholder for spending analytics and charts
 
 ### Backend Components
-1. **Storage Interface**: Abstracted storage layer with in-memory implementation
-2. **Route Registration**: Centralized route management system
-3. **Error Handling**: Global error middleware for consistent error responses
-4. **Development Integration**: Vite middleware for seamless development experience
+1. **Database Integration**: PostgreSQL database with Drizzle ORM for expenses, budgets, and user balances
+2. **Storage Interface**: Database storage implementation with comprehensive CRUD operations
+3. **API Routes**: RESTful endpoints for expenses, budgets, and user balances with data validation
+4. **Route Registration**: Centralized route management system
+5. **Error Handling**: Global error middleware for consistent error responses
+6. **Development Integration**: Vite middleware for seamless development experience
 
 ### Authentication & Authorization
 - User model with username/password authentication
