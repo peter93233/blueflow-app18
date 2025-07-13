@@ -2,12 +2,32 @@ import { DollarSign, TrendingUp, PieChart, BarChart3, Mic, Brain, Settings, Plus
 import { useFinance, useFinanceStats } from "@/hooks/use-finance";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import FloatingAIButton from "@/components/ui/floating-ai-button";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export default function Home() {
   const { balance, budget, progress, expenses, categoryTotals } = useFinance();
   const { getTopCategories, getWeeklyTrend, getBudgetHealth } = useFinanceStats();
+  const { triggerBudgetCheck, showToast } = useNotifications();
   const [showBalanceEdit, setShowBalanceEdit] = useState(false);
   const [newBalance, setNewBalance] = useState("");
+
+  // Initialize with demo notification on first load
+  useEffect(() => {
+    const hasShownDemo = localStorage.getItem('blueflow_demo_notification');
+    if (!hasShownDemo && expenses.length > 0) {
+      setTimeout(() => {
+        showToast({
+          type: 'smart_tip',
+          title: 'Welcome to BlueFlow!',
+          message: 'Your AI assistant is ready to help you manage your finances. Try adding an expense to see smart suggestions!',
+          priority: 'medium',
+          icon: '🎉'
+        });
+        localStorage.setItem('blueflow_demo_notification', 'true');
+      }, 2000);
+    }
+  }, [expenses.length, showToast]);
 
   // Format currency for display
   const formatCurrency = (amount: number) => {
@@ -283,9 +303,7 @@ export default function Home() {
         </div>
 
         {/* AI Assistant Floating Button */}
-        <div className="ai-floating-button">
-          <Brain className="w-8 h-8 text-white" />
-        </div>
+        <FloatingAIButton />
       </div>
     </div>
   );

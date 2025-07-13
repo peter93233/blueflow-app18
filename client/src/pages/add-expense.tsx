@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/hooks/use-finance";
+import { useNotifications } from "@/hooks/use-notifications";
 import { EXPENSE_CATEGORIES } from "@/lib/finance-store";
 
 export default function AddExpense() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { addExpenseWithBudgetUpdate, progress, budget } = useFinance();
+  const { addExpenseWithBudgetUpdate, progress, budget, expenses, categoryTotals } = useFinance();
+  const { triggerBudgetCheck, showToast } = useNotifications();
 
   const [expenseName, setExpenseName] = useState("");
   const [amount, setAmount] = useState("");
@@ -64,17 +66,26 @@ export default function AddExpense() {
       expenseDate
     );
 
-    toast({
+    // Success notification
+    showToast({
+      type: 'smart_tip',
       title: "Expense Added",
-      description: `${formatCurrency(expenseAmount)} expense "${expenseName}" added successfully`,
+      message: `${formatCurrency(expenseAmount)} expense "${expenseName}" added successfully`,
+      priority: 'low',
+      icon: '✅'
     });
 
-    // Check budget status
+    // Trigger budget notifications and smart tips
+    triggerBudgetCheck(expenses, budget, categoryTotals);
+
+    // Show specific budget alert if needed
     if (budget && progress.percentage > 85) {
-      toast({
-        title: "Budget Warning",
-        description: `You've used ${progress.percentage}% of your ${budget.period} budget`,
-        variant: "destructive"
+      showToast({
+        type: 'budget_exceeded',
+        title: "Budget Alert",
+        message: `You've used ${Math.round(progress.percentage)}% of your ${budget.period} budget. Consider reviewing your spending.`,
+        priority: progress.percentage > 95 ? 'high' : 'medium',
+        icon: '⚠️'
       });
     }
 

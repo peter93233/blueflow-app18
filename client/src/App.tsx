@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { NotificationContainer } from "@/components/ui/notification-toast";
+import { useNotifications } from "@/hooks/use-notifications";
 import Home from "@/pages/home";
 import AddExpense from "@/pages/add-expense";
 import BudgetSettings from "@/pages/budget-settings";
@@ -21,12 +23,26 @@ function Router() {
   );
 }
 
+function AppContent() {
+  const { activeToasts, dismissToast } = useNotifications();
+
+  return (
+    <>
+      <Router />
+      <NotificationContainer 
+        notifications={activeToasts}
+        onDismiss={dismissToast}
+      />
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );
