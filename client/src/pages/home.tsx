@@ -5,6 +5,8 @@ import { Link } from "wouter";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { useNotifications } from "@/hooks/use-notifications";
 import { AddExpenseModal } from "@/components/ui/add-expense-modal";
+import { VibrantDonutChart, CategoryLegend } from "@/components/ui/vibrant-donut-chart";
+import { BudgetPeriod } from "@/lib/finance-store";
 
 export default function Home() {
   const { balance, budget, progress, expenses, categoryTotals } = useFinance();
@@ -31,6 +33,34 @@ export default function Home() {
     }
   }, [expenses.length, showToast]);
 
+  // Listen for expense added events to refresh data
+  useEffect(() => {
+    const handleExpenseAdded = (event: CustomEvent) => {
+      // Refresh the page data when expense is added
+      window.location.reload();
+    };
+
+    window.addEventListener('expenseAdded', handleExpenseAdded as EventListener);
+    
+    return () => {
+      window.removeEventListener('expenseAdded', handleExpenseAdded as EventListener);
+    };
+  }, []);
+
+  // Initialize default budget if none exists
+  useEffect(() => {
+    const storedBudget = localStorage.getItem('blueflow_budget');
+    if (!storedBudget) {
+      // Set default weekly budget of $500
+      const defaultBudget = {
+        period: 'weekly' as BudgetPeriod,
+        amount: 500,
+        startDate: new Date()
+      };
+      localStorage.setItem('blueflow_budget', JSON.stringify(defaultBudget));
+    }
+  }, []);
+
   // Format currency for display
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -45,6 +75,22 @@ export default function Home() {
 
   // Get top spending categories for donut charts
   const topCategories = getTopCategories(4);
+
+  // Enhanced chart data with vibrant colors matching reference image
+  const chartData = topCategories.map((category, index) => {
+    const colors = [
+      { color: '#06B6D4', glowColor: 'rgba(6, 182, 212, 0.4)' }, // Cyan
+      { color: '#F59E0B', glowColor: 'rgba(245, 158, 11, 0.4)' }, // Orange
+      { color: '#EC4899', glowColor: 'rgba(236, 72, 153, 0.4)' }, // Pink
+      { color: '#8B5CF6', glowColor: 'rgba(139, 92, 246, 0.4)' }, // Purple
+    ];
+    
+    return {
+      name: category.name,
+      value: category.amount,
+      ...colors[index % colors.length]
+    };
+  });
   const weeklyTrend = getWeeklyTrend();
   const budgetHealth = getBudgetHealth();
 
@@ -243,26 +289,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Top Categories */}
-          {topCategories.length > 0 && (
+          {/* Enhanced Spending Visualization */}
+          {chartData.length > 0 && (
             <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Top Spending</h4>
-              <div className="space-y-2">
-                {topCategories.slice(0, 3).map((category, index) => (
-                  <div key={category.name} className="flex justify-between items-center p-2 bg-white/20 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        index === 0 ? 'bg-blue-500' : 
-                        index === 1 ? 'bg-green-500' : 'bg-purple-500'
-                      }`}></div>
-                      <span className="text-sm font-medium text-gray-700">{category.name}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-800">
-                      {formatCurrency(category.amount)}
-                    </span>
-                  </div>
-                ))}
+              <h4 className="font-semibold text-gray-800 mb-4">Spending Breakdown</h4>
+              <div className="flex justify-center mb-4">
+                <VibrantDonutChart data={chartData} size={140} thickness={16} />
               </div>
+              <CategoryLegend data={chartData} total={progress.spent} />
             </div>
           )}
         </div>

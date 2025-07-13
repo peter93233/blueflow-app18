@@ -60,7 +60,44 @@ export function useBudget() {
     setProgress(currentProgress);
   }, []);
 
+  // Load budget data from localStorage and recalculate remaining budget
   useEffect(() => {
+    const loadBudgetFromStorage = () => {
+      try {
+        // Load budget settings
+        const storedBudget = localStorage.getItem('blueflow_budget');
+        if (storedBudget) {
+          const budgetData = JSON.parse(storedBudget);
+          setBudgetState({
+            ...budgetData,
+            startDate: new Date(budgetData.startDate)
+          });
+        }
+
+        // Load expenses and recalculate budget progress
+        const storedExpenses = localStorage.getItem('blueflow_expenses');
+        if (storedExpenses && storedBudget) {
+          const expenseData = JSON.parse(storedExpenses);
+          const budgetData = JSON.parse(storedBudget);
+          
+          // Calculate total spent
+          const totalSpent = expenseData.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+          const remaining = budgetData.amount - totalSpent;
+          const percentage = budgetData.amount > 0 ? (totalSpent / budgetData.amount) * 100 : 0;
+          
+          setProgress({
+            spent: totalSpent,
+            total: budgetData.amount,
+            percentage: Math.min(percentage, 100),
+            remaining: remaining
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load budget from localStorage:', error);
+      }
+    };
+
+    loadBudgetFromStorage();
     refreshBudgetData();
   }, [refreshBudgetData]);
 
@@ -100,7 +137,34 @@ export function useExpenses() {
     setCategoryTotals(totals);
   }, []);
 
+  // 3. Auto-reload data on refresh - Load from localStorage on component mount
   useEffect(() => {
+    const loadExpensesFromStorage = () => {
+      try {
+        const storedExpenses = localStorage.getItem('blueflow_expenses');
+        if (storedExpenses) {
+          const expenseData = JSON.parse(storedExpenses);
+          // Convert date strings back to Date objects
+          const processedExpenses = expenseData.map((expense: any) => ({
+            ...expense,
+            date: new Date(expense.date),
+            createdAt: new Date(expense.createdAt)
+          }));
+          setExpensesState(processedExpenses);
+          
+          // Calculate category totals
+          const totals: Record<string, number> = {};
+          processedExpenses.forEach((expense: Expense) => {
+            totals[expense.category] = (totals[expense.category] || 0) + expense.amount;
+          });
+          setCategoryTotals(totals);
+        }
+      } catch (error) {
+        console.error('Failed to load expenses from localStorage:', error);
+      }
+    };
+
+    loadExpensesFromStorage();
     refreshExpenses();
   }, [refreshExpenses]);
 

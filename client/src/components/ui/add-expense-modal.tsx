@@ -28,6 +28,7 @@ export function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProps) {
   };
 
   const handleSubmit = () => {
+    // Validation
     if (!expenseName.trim() || !amount || !selectedCategory) {
       showToast({
         type: 'budget_exceeded',
@@ -51,7 +52,41 @@ export function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProps) {
       return;
     }
 
-    // Add the expense
+    // 1. Store expense data - Add to local array and localStorage
+    const newExpense = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      name: expenseName.trim(),
+      amount: expenseAmount,
+      category: selectedCategory,
+      date: new Date(selectedDate),
+      createdAt: new Date()
+    };
+
+    // Get existing expenses from localStorage
+    const existingExpenses = JSON.parse(localStorage.getItem('blueflow_expenses') || '[]');
+    
+    // Add new expense to array
+    const updatedExpenses = [...existingExpenses, newExpense];
+    
+    // Save to localStorage
+    localStorage.setItem('blueflow_expenses', JSON.stringify(updatedExpenses));
+
+    // 2. Update available budget - Subtract expense from current budget
+    const currentBudget = budget?.amount || 0;
+    const totalSpent = updatedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const remainingBudget = currentBudget - totalSpent;
+    
+    // Update budget state in localStorage
+    if (budget) {
+      const budgetData = {
+        ...budget,
+        spent: totalSpent,
+        remaining: remainingBudget
+      };
+      localStorage.setItem('blueflow_budget_progress', JSON.stringify(budgetData));
+    }
+
+    // Add expense using the existing hook (this will also trigger UI updates)
     addExpenseWithBudgetUpdate(
       expenseName.trim(),
       expenseAmount,
@@ -62,23 +97,51 @@ export function AddExpenseModal({ isOpen, onClose }: AddExpenseModalProps) {
     // Success notification
     showToast({
       type: 'smart_tip',
-      title: "Expense Added",
-      message: `${formatCurrency(amount)} expense "${expenseName}" added successfully`,
+      title: "Expense Added Successfully",
+      message: `${formatCurrency(amount)} expense "${expenseName}" added. Remaining budget: ${formatCurrency(remainingBudget)}`,
       priority: 'low',
       icon: '✅'
     });
 
-    // Check budget status
+    // Check budget status and show warnings if needed
+    if (remainingBudget < 0) {
+      showToast({
+        type: 'budget_exceeded',
+        title: "Budget Exceeded",
+        message: `You've exceeded your budget by ${formatCurrency(Math.abs(remainingBudget))}`,
+        priority: 'high',
+        icon: '⚠️'
+      });
+    } else if (remainingBudget < currentBudget * 0.2) {
+      showToast({
+        type: 'budget_exceeded',
+        title: "Budget Warning",
+        message: `Only ${formatCurrency(remainingBudget)} remaining in your budget`,
+        priority: 'medium',
+        icon: '⚠️'
+      });
+    }
+
+    // Trigger budget check for additional smart insights
     setTimeout(() => {
-      triggerBudgetCheck(expenses, budget, categoryTotals);
+      triggerBudgetCheck(updatedExpenses, budget, categoryTotals);
     }, 500);
 
-    // Reset form and close
+    // Reset form and close modal - Return to dashboard
     setExpenseName("");
     setAmount("");
     setSelectedCategory("");
     setSelectedDate(new Date().toISOString().split('T')[0]);
     onClose();
+    
+    // Trigger a custom event to notify other components of the update
+    window.dispatchEvent(new CustomEvent('expenseAdded', { 
+      detail: { 
+        expense: newExpense, 
+        totalSpent, 
+        remainingBudget 
+      } 
+    }));
   };
 
   const quickAmounts = [5, 10, 25, 50];

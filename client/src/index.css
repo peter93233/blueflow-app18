@@ -58,10 +58,31 @@
   --cyan-blue: linear-gradient(135deg, #06b6d4, #0891b2);
   --purple-gradient: linear-gradient(135deg, #8b5cf6, #a855f7);
   
-  /* Reference-based gradients */
-  --blueflow-primary: linear-gradient(145deg, #E3D9FF, #CDE7F9);
+  /* Reference-based gradients - Enhanced from the futuristic image */
+  --blueflow-primary: linear-gradient(145deg, #E8E3FF, #D6E8FF);
   --blueflow-secondary: linear-gradient(135deg, #FFB5E8, #FFC48C);
   --blueflow-accent: linear-gradient(135deg, #A87FEF, #FFB5E8);
+  --blueflow-tertiary: linear-gradient(135deg, #06B6D4, #8B5CF6);
+  
+  /* Enhanced glass morphism properties */
+  --glass-bg-light: rgba(255, 255, 255, 0.1);
+  --glass-bg-medium: rgba(255, 255, 255, 0.15);
+  --glass-bg-strong: rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  
+  /* Enhanced glow effects */
+  --glow-primary: rgba(139, 92, 246, 0.4);
+  --glow-secondary: rgba(236, 72, 153, 0.3);
+  --glow-tertiary: rgba(6, 182, 212, 0.3);
+  --glow-accent: rgba(168, 127, 239, 0.5);
+  
+  /* Enhanced text colors */
+  --text-primary: #2D1B69;
+  --text-secondary: #5A4FCF;
+  --text-accent: #8B5CF6;
+  --text-light: #E2E8F0;
+  --text-white: #FFFFFF;
   
   /* Glass morphism enhanced */
   --glass-bg: rgba(255, 255, 255, 0.2);
@@ -163,14 +184,34 @@ body {
   background: linear-gradient(135deg, #FFB5E8, #FFC48C);
   backdrop-filter: blur(20px);
   border: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 
+    0 8px 32px rgba(255, 181, 232, 0.4),
+    0 4px 16px rgba(255, 196, 140, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
   border-radius: 50px;
   color: var(--text-primary);
   font-weight: bold;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
   padding: 12px 24px;
   font-size: 1.1rem;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-button-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.glass-button-primary:hover::before {
+  left: 100%;
 }
 
 .glass-button-primary:hover {
@@ -257,10 +298,23 @@ body {
 }
 
 .progress-ring {
-  background: conic-gradient(from 0deg, #06b6d4 0deg, #3b82f6 90deg, #8b5cf6 180deg, #ec4899 270deg, #06b6d4 360deg);
+  background: conic-gradient(from 0deg, #06B6D4 0deg, #F59E0B 90deg, #EC4899 180deg, #8B5CF6 270deg, #06B6D4 360deg);
   border-radius: 50%;
-  padding: 3px;
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+  padding: 4px;
+  box-shadow: 
+    0 0 40px rgba(139, 92, 246, 0.4),
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    0 0 60px rgba(6, 182, 212, 0.3);
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.progress-ring:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 0 60px rgba(139, 92, 246, 0.5),
+    0 12px 35px rgba(0, 0, 0, 0.2),
+    0 0 80px rgba(6, 182, 212, 0.4);
 }
 
 .progress-ring-inner {
@@ -349,16 +403,18 @@ body {
 
 @keyframes float-glow {
   0%, 100% { 
-    transform: translateY(0px);
+    transform: translateY(0px) scale(1);
     box-shadow: 
       0 20px 40px rgba(168, 127, 239, 0.4),
-      0 0 60px rgba(255, 181, 232, 0.3);
+      0 0 60px rgba(255, 181, 232, 0.3),
+      0 0 100px rgba(139, 92, 246, 0.2);
   }
   50% { 
-    transform: translateY(-8px);
+    transform: translateY(-8px) scale(1.05);
     box-shadow: 
       0 30px 50px rgba(168, 127, 239, 0.5),
-      0 0 80px rgba(255, 181, 232, 0.4);
+      0 0 80px rgba(255, 181, 232, 0.4),
+      0 0 120px rgba(139, 92, 246, 0.3);
   }
 }
 
@@ -392,14 +448,30 @@ body {
 }
 
 .float-card {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.35) 0%, 
+    rgba(255, 255, 255, 0.15) 100%);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 0 30px rgba(139, 92, 246, 0.1);
   transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
-  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.float-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
 }
 
 .float-card:hover {
