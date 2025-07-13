@@ -9,17 +9,18 @@ export default function SimpleBudgetSettings() {
   const [budgetAmount, setBudgetAmount] = useState(500);
   const [budgetPeriod, setBudgetPeriod] = useState<BudgetPeriod>('weekly');
 
-  // Load budget from localStorage on component mount
+  // Load budget settings from localStorage on component mount
+  // This ensures the selected options persist even after refresh
   useEffect(() => {
-    const storedBudget = localStorage.getItem('blueflow_budget');
-    if (storedBudget) {
-      try {
-        const budget = JSON.parse(storedBudget);
-        setBudgetAmount(budget.amount);
-        setBudgetPeriod(budget.period);
-      } catch (error) {
-        console.error('Failed to load budget:', error);
-      }
+    const storedBudgetType = localStorage.getItem('blueflow_budget_type');
+    const storedBudgetAmount = localStorage.getItem('blueflow_budget_amount');
+    
+    if (storedBudgetType) {
+      setBudgetPeriod(storedBudgetType as BudgetPeriod);
+    }
+    
+    if (storedBudgetAmount) {
+      setBudgetAmount(parseFloat(storedBudgetAmount));
     }
   }, []);
 
@@ -37,16 +38,18 @@ export default function SimpleBudgetSettings() {
       return;
     }
 
-    // Save budget to localStorage
-    const budgetData = {
-      period: budgetPeriod,
-      amount: budgetAmount,
-      startDate: new Date().toISOString()
-    };
+    // Save budget frequency and amount to localStorage using the specified keys
+    // This allows the main dashboard to use this amount as the base budget
+    localStorage.setItem('blueflow_budget_type', budgetPeriod);
+    localStorage.setItem('blueflow_budget_amount', budgetAmount.toString());
     
-    localStorage.setItem('blueflow_budget', JSON.stringify(budgetData));
+    // Also save a timestamp for future expansion (tracking when budget was last updated)
+    localStorage.setItem('blueflow_budget_updated', new Date().toISOString());
     
     alert(`Budget updated! Your ${budgetPeriod} budget is now $${budgetAmount.toFixed(2)}`);
+    
+    // Return to dashboard after saving - can be expanded to use proper navigation
+    window.location.href = '/';
   };
 
   return (
@@ -63,7 +66,7 @@ export default function SimpleBudgetSettings() {
               <ArrowLeft className="w-5 h-5 text-slate-700" />
             </button>
           </Link>
-          <h1 className="text-2xl font-bold text-slate-800">Budget Settings</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Set Your Budget</h1>
         </motion.div>
 
         {/* Budget Settings Form */}
@@ -104,48 +107,48 @@ export default function SimpleBudgetSettings() {
               </div>
             </div>
 
-            {/* Budget Period */}
+            {/* Budget Period - Segmented Control Style */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <Calendar className="w-4 h-4" />
-                Budget Period
+                Budget Frequency
               </label>
-              <div className="space-y-3">
-                {budgetPeriods.map((period) => (
-                  <label
-                    key={period.value}
-                    className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                      budgetPeriod === period.value
-                        ? 'border-purple-300 bg-purple-50/50'
-                        : 'border-white/40 bg-white/20 hover:bg-white/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="budgetPeriod"
-                        value={period.value}
-                        checked={budgetPeriod === period.value}
-                        onChange={(e) => setBudgetPeriod(e.target.value as BudgetPeriod)}
-                        className="w-4 h-4 text-purple-600"
-                      />
-                      <div>
-                        <p className="font-medium text-slate-800">{period.label}</p>
-                        <p className="text-sm text-slate-600">{period.description}</p>
-                      </div>
-                    </div>
-                  </label>
-                ))}
+              
+              {/* Segmented control for budget frequency selection */}
+              <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-2 border border-white/40">
+                <div className="grid grid-cols-3 gap-1">
+                  {budgetPeriods.map((period) => (
+                    <button
+                      key={period.value}
+                      type="button"
+                      onClick={() => setBudgetPeriod(period.value)}
+                      className={`py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
+                        budgetPeriod === period.value
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                          : 'text-slate-700 hover:bg-white/40'
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+              
+              {/* Description for selected period */}
+              <p className="text-sm text-slate-600 text-center">
+                {budgetPeriods.find(p => p.value === budgetPeriod)?.description}
+              </p>
             </div>
 
-            {/* Save Button */}
-            <button
+            {/* Save Budget Button - Glass Style */}
+            <motion.button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl py-4 font-semibold transition-colors shadow-lg"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-purple-500/80 to-pink-500/80 backdrop-blur-xl border border-white/30 hover:from-purple-600/80 hover:to-pink-600/80 text-white rounded-2xl py-4 font-semibold transition-all duration-200 shadow-xl"
             >
-              Save Budget Settings
-            </button>
+              Save Budget
+            </motion.button>
           </form>
         </motion.div>
 

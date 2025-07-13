@@ -24,7 +24,7 @@ export default function SimpleHome() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(500);
 
-  // Load expenses from localStorage
+  // Load expenses and budget settings from localStorage
   useEffect(() => {
     const loadExpenses = () => {
       const storedExpenses = localStorage.getItem('blueflow_expenses');
@@ -36,8 +36,9 @@ export default function SimpleHome() {
         const total = parsedExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
         setTotalSpent(total);
         
-        // Calculate remaining budget (assuming $500 default)
-        const budget = 500;
+        // Use custom budget amount if set, otherwise default to $500
+        const storedBudgetAmount = localStorage.getItem('blueflow_budget_amount');
+        const budget = storedBudgetAmount ? parseFloat(storedBudgetAmount) : 500;
         setRemainingBudget(budget - total);
       }
     };
@@ -71,7 +72,9 @@ export default function SimpleHome() {
   };
 
   const getBudgetPercentage = () => {
-    const budget = 500;
+    // Use custom budget amount if set, otherwise default to $500
+    const storedBudgetAmount = localStorage.getItem('blueflow_budget_amount');
+    const budget = storedBudgetAmount ? parseFloat(storedBudgetAmount) : 500;
     return budget > 0 ? (totalSpent / budget) * 100 : 0;
   };
 
@@ -133,7 +136,12 @@ export default function SimpleHome() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-purple-500" />
-              <h2 className="text-lg font-semibold text-slate-800">Weekly Budget</h2>
+              <h2 className="text-lg font-semibold text-slate-800">
+                {(() => {
+                  const budgetType = localStorage.getItem('blueflow_budget_type') || 'weekly';
+                  return budgetType.charAt(0).toUpperCase() + budgetType.slice(1);
+                })()} Budget
+              </h2>
             </div>
             <Link href="/budget-settings">
               <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -145,7 +153,11 @@ export default function SimpleHome() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-2xl font-bold text-slate-800">{formatCurrency(remainingBudget)}</span>
-              <span className="text-sm text-slate-600">of $500 remaining</span>
+              <span className="text-sm text-slate-600">
+                of {formatCurrency(
+                  parseFloat(localStorage.getItem('blueflow_budget_amount') || '500')
+                )} remaining
+              </span>
             </div>
             
             <div className="w-full bg-white/30 rounded-full h-3">
