@@ -1,49 +1,34 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Calendar, Save, Archive } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { ArrowLeft, DollarSign, Calendar, Target, Settings, Save } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useFinance } from "@/hooks/use-finance";
 import { BudgetPeriod } from "@/lib/finance-store";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export default function BudgetSettings() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const { budget, setBudget, progress, saveCurrentMonth } = useFinance();
+  const { budget, setBudget, progress } = useFinance();
+  const { showToast } = useNotifications();
   
-  const [selectedPeriod, setSelectedPeriod] = useState<BudgetPeriod>('weekly');
-  const [budgetAmount, setBudgetAmount] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState(budget?.amount.toString() || "");
+  const [selectedPeriod, setSelectedPeriod] = useState<BudgetPeriod>(budget?.period || 'weekly');
 
-  // Load existing budget on component mount
-  useEffect(() => {
-    if (budget) {
-      setSelectedPeriod(budget.period);
-      setBudgetAmount(budget.amount.toString());
-    }
-  }, [budget]);
-
-  const periodOptions = [
-    { value: 'weekly' as BudgetPeriod, label: 'Weekly', description: 'Set a weekly budget' },
-    { value: 'biweekly' as BudgetPeriod, label: 'Biweekly', description: 'Set a biweekly budget' },
-    { value: 'monthly' as BudgetPeriod, label: 'Monthly', description: 'Set a monthly budget' }
-  ];
-
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string) => {
+    if (!amount) return "";
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+    }).format(parseFloat(amount));
   };
 
   const handleSaveBudget = () => {
     if (!budgetAmount || isNaN(parseFloat(budgetAmount))) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid budget amount",
-        variant: "destructive"
+      showToast({
+        type: 'budget_exceeded',
+        title: 'Invalid Amount',
+        message: 'Please enter a valid budget amount',
+        priority: 'medium',
+        icon: '⚠️'
       });
       return;
     }
@@ -51,159 +36,215 @@ export default function BudgetSettings() {
     const amount = parseFloat(budgetAmount);
     setBudget(selectedPeriod, amount);
     
-    toast({
-      title: "Budget Updated",
-      description: `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} budget of ${formatCurrency(amount)} saved successfully`,
+    showToast({
+      type: 'smart_tip',
+      title: 'Budget Updated!',
+      message: `Your ${selectedPeriod} budget has been set to ${formatCurrency(budgetAmount)}`,
+      priority: 'medium',
+      icon: '✅'
     });
-  };
 
-  const handleArchiveMonth = () => {
-    const archive = saveCurrentMonth();
-    toast({
-      title: "Month Archived",
-      description: `${archive.month} data saved with ${formatCurrency(archive.totalExpenses)} in expenses`,
-    });
-  };
-
-  const handleBack = () => {
     setLocation("/");
   };
 
-  return (
-    <div className="max-w-sm mx-auto min-h-screen bg-gradient-to-br from-[hsl(var(--blue-flow-50))] to-[hsl(var(--blue-flow-100))] relative overflow-hidden">
-      {/* Header */}
-      <motion.header 
-        className="pt-12 pb-6 px-6"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="h-6"></div>
-        
-        <div className="flex items-center justify-between mb-8">
-          <motion.button
-            onClick={handleBack}
-            className="w-12 h-12 rounded-full neuro-shadow-sm bg-gradient-to-br from-[hsl(var(--blue-flow-100))] to-white flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-6 h-6 text-[hsl(var(--blue-flow-600))]" />
-          </motion.button>
-          
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-[hsl(var(--blue-flow-700))]">Set Your Budget</h1>
-          </div>
-          
-          <div className="w-12"></div>
-        </div>
-      </motion.header>
+  const budgetPeriods: { value: BudgetPeriod; label: string; description: string }[] = [
+    { value: 'weekly', label: 'Weekly', description: 'Reset every Monday' },
+    { value: 'biweekly', label: 'Bi-weekly', description: 'Reset every 2 weeks' },
+    { value: 'monthly', label: 'Monthly', description: 'Reset on 1st of month' }
+  ];
 
-      {/* Content */}
-      <motion.main 
-        className="px-6 pb-24"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-      >
-        <div className="space-y-6">
-          {/* Period Selection */}
-          <motion.div
-            className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-          >
-            <Label className="flex items-center gap-2 text-[hsl(var(--blue-flow-700))] font-semibold mb-4">
-              <Calendar className="w-5 h-5" />
-              Budget Period
-            </Label>
-            
+  const quickAmounts = [100, 200, 500, 1000];
+
+  // Calculate daily/weekly targets based on period
+  const getDailyTarget = () => {
+    if (!budgetAmount) return 0;
+    const amount = parseFloat(budgetAmount);
+    switch (selectedPeriod) {
+      case 'weekly': return amount / 7;
+      case 'biweekly': return amount / 14;
+      case 'monthly': return amount / 30;
+      default: return 0;
+    }
+  };
+
+  return (
+    <div className="min-h-screen pb-32">
+      <div className="float-layout">
+        {/* Header */}
+        <div className="flex items-center justify-between pt-12 pb-6">
+          <Link href="/">
+            <button className="glass-button-secondary p-3 rounded-xl hover-lift">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Link>
+          <div className="text-center">
+            <h1 className="text-xl font-bold gradient-text-primary">Budget Settings</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your spending limits</p>
+          </div>
+          <div className="w-12 h-12"></div> {/* Spacer */}
+        </div>
+
+        {/* Budget Preview Card */}
+        {budgetAmount && (
+          <div className="float-card text-center hover-lift glow-on-hover mb-6">
+            <div className="p-6">
+              <Target className="w-10 h-10 text-purple-500 mx-auto mb-3" />
+              <div className="text-3xl font-bold gradient-text-accent mb-2">
+                {formatCurrency(budgetAmount)}
+              </div>
+              <p className="text-sm text-gray-600 mb-3">
+                {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Budget
+              </p>
+              <div className="text-xs text-gray-500">
+                Daily target: {formatCurrency(getDailyTarget().toString())}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Budget Amount */}
+        <div className="float-card hover-lift glow-on-hover mb-6">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <DollarSign className="w-6 h-6 text-green-500" />
+              <h3 className="text-lg font-bold gradient-text-primary">Budget Amount</h3>
+            </div>
+
             <div className="space-y-3">
-              {periodOptions.map((option, index) => (
-                <motion.button
-                  key={option.value}
-                  onClick={() => setSelectedPeriod(option.value)}
-                  className={`w-full p-4 rounded-2xl transition-neuro ${
-                    selectedPeriod === option.value
-                      ? 'neuro-inset bg-gradient-to-br from-[hsl(var(--blue-flow-200))] to-[hsl(var(--blue-flow-300))]'
-                      : 'neuro-shadow-sm bg-gradient-to-br from-[hsl(var(--blue-flow-100))] to-white hover:neuro-shadow'
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.3 }}
+              <label className="text-sm font-semibold text-gray-700">
+                Set your {selectedPeriod} spending limit
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={budgetAmount}
+                onChange={(e) => setBudgetAmount(e.target.value)}
+                className="glass-input w-full text-2xl font-bold text-center"
+                placeholder="0.00"
+                required
+              />
+            </div>
+
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-4 gap-3">
+              {quickAmounts.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setBudgetAmount(amount.toString())}
+                  className="p-3 text-sm font-semibold text-gray-700 bg-white/20 rounded-lg hover:bg-white/40 transition-all border border-white/30"
                 >
-                  <div className="text-left">
-                    <div className={`font-semibold ${
-                      selectedPeriod === option.value 
-                        ? 'text-[hsl(var(--blue-flow-700))]' 
-                        : 'text-[hsl(var(--blue-flow-600))]'
-                    }`}>
-                      {option.label}
-                    </div>
-                    <div className={`text-sm ${
-                      selectedPeriod === option.value 
-                        ? 'text-[hsl(var(--blue-flow-600))]' 
-                        : 'text-[hsl(var(--blue-flow-500))]'
-                    }`}>
-                      {option.description}
-                    </div>
-                  </div>
-                </motion.button>
+                  ${amount}
+                </button>
               ))}
             </div>
-          </motion.div>
-
-          {/* Budget Amount Input */}
-          <motion.div
-            className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.3 }}
-          >
-            <Label htmlFor="budget-amount" className="flex items-center gap-2 text-[hsl(var(--blue-flow-700))] font-semibold mb-4">
-              <DollarSign className="w-5 h-5" />
-              Enter Your Budget Amount
-            </Label>
-            
-            <Input
-              id="budget-amount"
-              type="number"
-              placeholder="0.00"
-              value={budgetAmount}
-              onChange={(e) => setBudgetAmount(e.target.value)}
-              className="rounded-2xl neuro-inset-sm border-0 bg-[hsl(var(--blue-flow-50))] text-[hsl(var(--blue-flow-700))] placeholder:text-[hsl(var(--blue-flow-400))] focus:ring-2 focus:ring-[hsl(var(--blue-flow-300))] text-xl text-center font-semibold py-6"
-            />
-            
-            <div className="mt-3 text-center">
-              <span className="text-sm text-[hsl(var(--blue-flow-500))]">
-                {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} budget limit
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Save Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.3 }}
-          >
-            <Button
-              onClick={handleSaveBudget}
-              className="glass-morphism rounded-2xl px-6 py-4 font-semibold text-[hsl(var(--blue-flow-700))] transition-neuro hover:shadow-lg active:scale-95 w-full border-0 bg-transparent hover:bg-transparent text-lg"
-            >
-              <motion.div 
-                className="flex items-center justify-center space-x-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span>Save Budget</span>
-              </motion.div>
-            </Button>
-          </motion.div>
+          </div>
         </div>
-      </motion.main>
+
+        {/* Budget Period */}
+        <div className="float-card hover-lift glow-on-hover mb-6">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-6 h-6 text-blue-500" />
+              <h3 className="text-lg font-bold gradient-text-primary">Budget Period</h3>
+            </div>
+
+            <div className="space-y-3">
+              {budgetPeriods.map((period) => (
+                <button
+                  key={period.value}
+                  onClick={() => setSelectedPeriod(period.value)}
+                  className={`w-full p-4 rounded-lg text-left transition-all border ${
+                    selectedPeriod === period.value
+                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-700'
+                      : 'bg-white/20 border-white/30 text-gray-700 hover:bg-white/40'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold">{period.label}</div>
+                      <div className="text-sm opacity-80">{period.description}</div>
+                    </div>
+                    {selectedPeriod === period.value && (
+                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Current Budget Status */}
+        {budget && (
+          <div className="float-card hover-lift glow-on-hover mb-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Settings className="w-6 h-6 text-orange-500" />
+                <h3 className="text-lg font-bold gradient-text-primary">Current Budget</h3>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <div className="text-lg font-bold text-gray-800">
+                    {formatCurrency(budget.amount.toString())}
+                  </div>
+                  <div className="text-xs text-gray-600">Set Budget</div>
+                </div>
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <div className="text-lg font-bold text-orange-600">
+                    {formatCurrency(progress.spent.toString())}
+                  </div>
+                  <div className="text-xs text-gray-600">Spent</div>
+                </div>
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <div className="text-lg font-bold text-green-600">
+                    {formatCurrency(progress.remaining.toString())}
+                  </div>
+                  <div className="text-xs text-gray-600">Remaining</div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Progress</span>
+                  <span>{Math.round(progress.percentage)}%</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-3">
+                  <div 
+                    className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                    style={{ width: `${Math.min(progress.percentage, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Budget Tips */}
+        <div className="float-card hover-lift mb-6">
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              💡 Budget Tips
+            </h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>• Set realistic budgets based on your income</p>
+              <p>• Weekly budgets help with short-term planning</p>
+              <p>• Monitor spending regularly to stay on track</p>
+              <p>• Adjust your budget as your needs change</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <button
+          onClick={handleSaveBudget}
+          className="glass-button-primary w-full py-4 text-lg font-semibold hover-lift"
+        >
+          <Save className="w-5 h-5 mr-2" />
+          Save Budget Settings
+        </button>
+      </div>
     </div>
   );
 }

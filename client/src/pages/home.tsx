@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, PieChart, BarChart3, Mic, Brain, Settings, Plus } from "lucide-react";
+import { DollarSign, TrendingUp, PieChart, BarChart3, Settings, Plus, Edit3, Wallet, Target, Zap } from "lucide-react";
 import { useFinance, useFinanceStats } from "@/hooks/use-finance";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
@@ -56,247 +56,239 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-4 pb-24">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Header with Assistant Icon */}
-        <div className="flex justify-between items-center pt-8 pb-4">
+    <div className="min-h-screen pb-32">
+      <div className="float-layout">
+        {/* Header Section */}
+        <div className="flex justify-between items-start pt-12 pb-6">
           <div>
-            <p className="text-sm text-gray-600">{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Brain className="w-5 h-5 text-orange-500" />
-              <span className="text-sm font-medium">BlueFlow Assistant</span>
-            </div>
+            <p className="text-sm text-gray-500 font-medium">
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long',
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </p>
+            <h1 className="text-2xl font-bold gradient-text-primary mt-1">
+              Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}
+            </h1>
           </div>
           <Link href="/budget-settings">
-            <div className="w-8 h-8 bg-orange-100 rounded-md flex items-center justify-center cursor-pointer hover:bg-orange-200 transition-colors">
-              <Settings className="w-4 h-4 text-orange-500" />
-            </div>
+            <button className="glass-button-secondary p-3 rounded-xl hover-lift">
+              <Settings className="w-5 h-5" />
+            </button>
           </Link>
         </div>
 
-        {/* Balance Cards Row - Now with real data */}
-        <div className="grid grid-cols-3 gap-3">
-          <div 
-            className="glass-card-modern p-4 text-center cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setShowBalanceEdit(true)}
-          >
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(balance)}</p>
-            <p className="text-xs text-gray-600 mt-1">Total Balance</p>
+        {/* Balance Card */}
+        <div className="float-card hover-lift glow-on-hover">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Balance</p>
+              <div className="flex items-center gap-3">
+                <div className="balance-display">
+                  {formatCurrency(balance)}
+                </div>
+                <button 
+                  onClick={() => setShowBalanceEdit(!showBalanceEdit)}
+                  className="p-2 rounded-full bg-white/30 hover:bg-white/50 transition-all"
+                >
+                  <Edit3 className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+              {showBalanceEdit && (
+                <div className="flex gap-2 mt-3">
+                  <input
+                    type="number"
+                    value={newBalance}
+                    onChange={(e) => setNewBalance(e.target.value)}
+                    placeholder="New balance"
+                    className="glass-input flex-1 text-sm"
+                  />
+                  <button 
+                    onClick={handleBalanceUpdate}
+                    className="glass-button-primary text-xs px-3"
+                  >
+                    Update
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="p-3 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20">
+              <Wallet className="w-6 h-6 text-green-600" />
+            </div>
           </div>
-          <div className="glass-card-modern p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(Math.max(0, availableBalance))}</p>
-            <p className="text-xs text-gray-600 mt-1">Available</p>
-          </div>
-          <div className="glass-card-modern p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(savingsGoal)}</p>
-            <p className="text-xs text-gray-600 mt-1">Savings Goal</p>
+          
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 mb-1">Available</p>
+              <p className="text-lg font-bold gradient-text-accent">
+                {formatCurrency(availableBalance)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 mb-1">Savings Goal</p>
+              <p className="text-lg font-bold gradient-text-accent">
+                {formatCurrency(savingsGoal)}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Balance Edit Modal */}
-        {showBalanceEdit && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="glass-card-modern p-6 m-4 w-full max-w-sm">
-              <h3 className="text-lg font-semibold mb-4">Update Balance</h3>
-              <input
-                type="number"
-                value={newBalance}
-                onChange={(e) => setNewBalance(e.target.value)}
-                placeholder="Enter new balance"
-                className="w-full p-3 rounded-lg border border-gray-300 mb-4"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowBalanceEdit(false)}
-                  className="flex-1 p-3 rounded-lg border border-gray-300 text-gray-600"
-                >
-                  Cancel
+        {/* Budget Progress */}
+        {budget && (
+          <div className="float-card hover-lift glow-on-hover">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-bold gradient-text-primary">Weekly Budget</h3>
+                <p className="text-sm text-gray-600">
+                  {formatCurrency(progress.remaining)} remaining
+                </p>
+              </div>
+              <Link href="/add-expense">
+                <button className="glass-button-primary">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Expense
                 </button>
-                <button
-                  onClick={handleBalanceUpdate}
-                  className="flex-1 gradient-button-primary"
-                >
-                  Update
-                </button>
+              </Link>
+            </div>
+
+            <div className="relative">
+              {/* Progress Ring */}
+              <div className="flex justify-center mb-6">
+                <div className="progress-ring w-32 h-32">
+                  <div className="progress-ring-inner w-full h-full">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold gradient-text-primary">
+                        {Math.round(progress.percentage)}%
+                      </div>
+                      <div className="text-xs text-gray-500">spent</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Stats */}
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Budget</p>
+                  <p className="font-semibold text-gray-800">
+                    {formatCurrency(budget.amount)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Spent</p>
+                  <p className="font-semibold text-orange-600">
+                    {formatCurrency(progress.spent)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Left</p>
+                  <p className="font-semibold text-green-600">
+                    {formatCurrency(progress.remaining)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Weekly Spending Section - Now with real data */}
-        <div className="glass-card-subtle p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Weekly Spending</h3>
-            <div className="flex gap-2">
-              <span className="text-xs text-gray-500">This Week: {formatCurrency(weeklyTrend.thisWeek)}</span>
-              <span className="text-xs text-gray-500">Last Week: {formatCurrency(weeklyTrend.lastWeek)}</span>
-            </div>
-          </div>
-
-          {/* Donut Charts Grid - Dynamic based on real categories */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {topCategories.slice(0, 4).map((category, index) => {
-              const colors = ['#06b6d4', '#fbbf24', '#f472b6', '#8b5cf6'];
-              const maxAmount = Math.max(...topCategories.map(c => c.amount));
-              const percentage = maxAmount > 0 ? (category.amount / maxAmount) * 100 : 0;
-              
-              return (
-                <div key={category.category} className="text-center">
-                  <div className="relative w-16 h-16 mx-auto mb-2">
-                    <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="16"
-                        fill="none"
-                        stroke="#e5e7eb"
-                        strokeWidth="3"
-                      />
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="16"
-                        fill="none"
-                        stroke={colors[index]}
-                        strokeWidth="3"
-                        strokeDasharray={`${percentage} ${100 - percentage}`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-medium text-gray-700">{formatCurrency(category.amount)}</p>
-                  <p className="text-xs text-gray-500">{category.category.split(' ')[0]}</p>
-                </div>
-              );
-            })}
-            
-            {/* Fill empty slots if less than 4 categories */}
-            {Array.from({ length: Math.max(0, 4 - topCategories.length) }).map((_, index) => (
-              <div key={`empty-${index}`} className="text-center">
-                <div className="relative w-16 h-16 mx-auto mb-2">
-                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="3"
-                    />
-                  </svg>
-                </div>
-                <p className="text-xs font-medium text-gray-700">$0.00</p>
-                <p className="text-xs text-gray-500">No data</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Income Breakdown Chart */}
-        <div className="glass-card-subtle p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Income Breakdown</h3>
-            <div className="flex gap-4 text-xs">
-              <span className="text-pink-500">● Online Sales</span>
-              <span className="text-blue-500">● Offline</span>
-            </div>
-          </div>
-
-          {/* Animated Line Chart Placeholder */}
-          <div className="h-32 relative">
-            <svg className="w-full h-full" viewBox="0 0 400 120">
-              {/* Grid lines */}
-              <defs>
-                <pattern id="grid" width="40" height="24" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 24" fill="none" stroke="#f3f4f6" strokeWidth="1"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-              
-              {/* Line charts */}
-              <path
-                d="M 0 80 Q 100 60, 200 70 T 400 50"
-                fill="none"
-                stroke="#06b6d4"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 0 100 Q 100 90, 200 85 T 400 75"
-                fill="none"
-                stroke="#f472b6"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
-          {/* Chart Labels */}
-          <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>Oct 12</span>
-            <span>Oct 13</span>
-            <span>Oct 14</span>
-            <span>Oct 15</span>
-          </div>
-        </div>
-
-        {/* Smart Budget Track - Real budget data */}
-        <div className="glass-card-subtle p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Smart Budget Track</h3>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-gray-900">{formatCurrency(progress.remaining)}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className={`text-sm ${budgetHealth === 'healthy' ? 'text-green-600' : budgetHealth === 'warning' ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {progress.percentage}% of budget used
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {budget ? `${formatCurrency(budget.amount)} ${budget.period} budget` : 'No budget set'}
-              </p>
-            </div>
-            
-            <div className="flex flex-col items-center gap-3">
-              <Link href="/add-expense">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
-                  <Plus className="w-8 h-8 text-white" />
-                </div>
-              </Link>
-              <div className="flex gap-2">
-                <span className="text-pink-500 text-xs">{formatCurrency(progress.spent)}</span>
-                <span className="text-gray-400 text-xs">Spent this period</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Navigation - Float-based layout */}
-        <div className="fixed bottom-0 left-0 right-0 glass-card-modern m-4 p-4">
-          <div className="flex justify-around items-center max-w-md mx-auto">
-            <Link href="/">
-              <button className="flex flex-col items-center gap-1">
-                <BarChart3 className="w-6 h-6 text-purple-500" />
-                <span className="text-xs text-gray-600">Dashboard</span>
-              </button>
-            </Link>
+        {/* Quick Actions */}
+        <div className="float-card hover-lift glow-on-hover">
+          <h3 className="text-lg font-bold gradient-text-primary mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-4">
             <Link href="/add-expense">
-              <button className="flex flex-col items-center gap-1">
-                <Plus className="w-6 h-6 text-gray-400" />
-                <span className="text-xs text-gray-600">Add Expense</span>
+              <button className="glass-button-accent w-full p-4 text-left">
+                <Plus className="w-6 h-6 mb-2" />
+                <div className="font-semibold">Add Expense</div>
+                <div className="text-xs opacity-80">Track spending</div>
               </button>
             </Link>
             <Link href="/reports">
-              <button className="flex flex-col items-center gap-1">
-                <TrendingUp className="w-6 h-6 text-gray-400" />
-                <span className="text-xs text-gray-600">Reports</span>
+              <button className="glass-button-secondary w-full p-4 text-left">
+                <BarChart3 className="w-6 h-6 mb-2" />
+                <div className="font-semibold">View Reports</div>
+                <div className="text-xs opacity-80">Analytics</div>
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Recent Activity Summary */}
+        <div className="float-card hover-lift glow-on-hover">
+          <h3 className="text-lg font-bold gradient-text-primary mb-4">Today's Overview</h3>
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <TrendingUp className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-gray-800">{expenses.length}</div>
+              <div className="text-xs text-gray-600">Expenses</div>
+            </div>
+            <div className="text-center p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Target className="w-6 h-6 text-green-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-gray-800">
+                {Object.keys(categoryTotals).length}
+              </div>
+              <div className="text-xs text-gray-600">Categories</div>
+            </div>
+            <div className="text-center p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Zap className="w-6 h-6 text-purple-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-gray-800">
+                {budgetHealth}
+              </div>
+              <div className="text-xs text-gray-600">Health</div>
+            </div>
+          </div>
+
+          {/* Top Categories */}
+          {topCategories.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Top Spending</h4>
+              <div className="space-y-2">
+                {topCategories.slice(0, 3).map((category, index) => (
+                  <div key={category.name} className="flex justify-between items-center p-2 bg-white/20 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        index === 0 ? 'bg-blue-500' : 
+                        index === 1 ? 'bg-green-500' : 'bg-purple-500'
+                      }`}></div>
+                      <span className="text-sm font-medium text-gray-700">{category.name}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800">
+                      {formatCurrency(category.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 nav-glass-bottom p-4 z-30">
+          <div className="flex justify-around items-center max-w-md mx-auto">
+            <Link href="/">
+              <button className="nav-icon-active flex flex-col items-center gap-1">
+                <BarChart3 className="w-6 h-6" />
+                <span className="text-xs">Dashboard</span>
+              </button>
+            </Link>
+            <Link href="/add-expense">
+              <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
+                <Plus className="w-6 h-6" />
+                <span className="text-xs">Add</span>
+              </button>
+            </Link>
+            <Link href="/reports">
+              <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
+                <TrendingUp className="w-6 h-6" />
+                <span className="text-xs">Reports</span>
               </button>
             </Link>
             <Link href="/budget-settings">
-              <button className="flex flex-col items-center gap-1">
-                <DollarSign className="w-6 h-6 text-gray-400" />
-                <span className="text-xs text-gray-600">Budget</span>
+              <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors">
+                <DollarSign className="w-6 h-6" />
+                <span className="text-xs">Budget</span>
               </button>
             </Link>
           </div>

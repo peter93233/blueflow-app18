@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, DollarSign, Calendar, Tag, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useLocation } from "wouter";
+import { ArrowLeft, DollarSign, Calendar, Tag, Plus, Receipt } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/hooks/use-finance";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -20,11 +17,12 @@ export default function AddExpense() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (value: string) => {
+    if (!value) return "";
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+    }).format(parseFloat(value));
   };
 
   const handleAddExpense = () => {
@@ -70,175 +68,188 @@ export default function AddExpense() {
     showToast({
       type: 'smart_tip',
       title: "Expense Added",
-      message: `${formatCurrency(expenseAmount)} expense "${expenseName}" added successfully`,
+      message: `${formatCurrency(amount)} expense "${expenseName}" added successfully`,
       priority: 'low',
       icon: '✅'
     });
 
-    // Trigger budget notifications and smart tips
-    triggerBudgetCheck(expenses, budget, categoryTotals);
+    // Check budget status and trigger notifications if needed
+    setTimeout(() => {
+      triggerBudgetCheck(expenses, budget, categoryTotals);
+    }, 500);
 
-    // Show specific budget alert if needed
-    if (budget && progress.percentage > 85) {
-      showToast({
-        type: 'budget_exceeded',
-        title: "Budget Alert",
-        message: `You've used ${Math.round(progress.percentage)}% of your ${budget.period} budget. Consider reviewing your spending.`,
-        priority: progress.percentage > 95 ? 'high' : 'medium',
-        icon: '⚠️'
-      });
-    }
-
-    // Clear form
-    setExpenseName("");
-    setAmount("");
-    setSelectedCategory("");
-    setSelectedDate(new Date().toISOString().split('T')[0]);
-  };
-
-  const handleBack = () => {
+    // Navigate back to home
     setLocation("/");
   };
 
   return (
-    <div className="min-h-screen p-4 pb-24">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen pb-32">
+      <div className="float-layout">
         {/* Header */}
-        <div className="flex items-center justify-between pt-8 pb-4">
-          <button
-            onClick={handleBack}
-            className="w-10 h-10 rounded-full glass-card-modern flex items-center justify-center hover:scale-105 transition-transform"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          
-          <h1 className="text-xl font-bold text-gray-900">Add Expense</h1>
-          
-          <div className="w-10"></div>
+        <div className="flex items-center justify-between pt-12 pb-6">
+          <Link href="/">
+            <button className="glass-button-secondary p-3 rounded-xl hover-lift">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Link>
+          <div className="text-center">
+            <h1 className="text-xl font-bold gradient-text-primary">Add Expense</h1>
+            <p className="text-sm text-gray-500 mt-1">Track your spending</p>
+          </div>
+          <div className="w-12 h-12"></div> {/* Spacer */}
         </div>
 
-        {/* Budget Status Card */}
-        {budget && (
-          <div className="glass-card-subtle p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-600">Budget Remaining</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(progress.remaining)}</p>
+        {/* Amount Preview Card */}
+        {amount && (
+          <div className="float-card text-center hover-lift glow-on-hover mb-4">
+            <div className="p-6">
+              <Receipt className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+              <div className="text-3xl font-bold gradient-text-accent mb-2">
+                {formatCurrency(amount)}
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Used</p>
-                <p className={`text-lg font-semibold ${
-                  progress.percentage <= 60 ? 'text-green-600' : 
-                  progress.percentage <= 85 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {progress.percentage}%
-                </p>
-              </div>
+              <p className="text-sm text-gray-600">
+                {expenseName || "New expense"} • {selectedCategory || "No category"}
+              </p>
             </div>
           </div>
         )}
 
-        {/* Expense Form */}
-        <div className="glass-card-modern p-6 space-y-6">
-          {/* Expense Name */}
-          <div className="space-y-2">
-            <Label htmlFor="expense-name" className="text-gray-700 font-medium">
-              Expense Name
-            </Label>
-            <div className="relative">
-              <Input
-                id="expense-name"
+        {/* Form Card */}
+        <div className="float-card hover-lift glow-on-hover">
+          <div className="space-y-6">
+            {/* Expense Name */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-purple-500" />
+                Expense Name
+              </label>
+              <input
                 type="text"
                 value={expenseName}
                 onChange={(e) => setExpenseName(e.target.value)}
-                placeholder="Enter expense name"
-                className="pl-10 glass-card-subtle border-0 focus:ring-2 focus:ring-purple-500"
+                className="glass-input w-full"
+                placeholder="Coffee, lunch, groceries..."
+                required
               />
-              <Tag className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
-          </div>
 
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-gray-700 font-medium">
-              Amount
-            </Label>
-            <div className="relative">
-              <Input
-                id="amount"
+            {/* Amount */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-500" />
+                Amount
+              </label>
+              <input
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="glass-input w-full text-lg font-semibold"
                 placeholder="0.00"
-                className="pl-10 glass-card-subtle border-0 focus:ring-2 focus:ring-purple-500"
+                required
               />
-              <DollarSign className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
-          </div>
 
-          {/* Category Selection */}
-          <div className="space-y-2">
-            <Label className="text-gray-700 font-medium">Category</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {EXPENSE_CATEGORIES.map((category) => (
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-4 gap-3">
+              {[5, 10, 25, 50].map((quickAmount) => (
                 <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`p-3 rounded-lg text-sm font-medium transition-all ${
-                    selectedCategory === category
-                      ? 'gradient-button-primary text-white'
-                      : 'glass-card-subtle text-gray-700 hover:scale-105'
-                  }`}
+                  type="button"
+                  key={quickAmount}
+                  onClick={() => setAmount(quickAmount.toString())}
+                  className="p-3 text-sm font-semibold text-gray-700 bg-white/20 rounded-lg hover:bg-white/40 transition-all border border-white/30"
                 >
-                  {category}
+                  ${quickAmount}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="date" className="text-gray-700 font-medium">
-              Date
-            </Label>
-            <div className="relative">
-              <Input
-                id="date"
+            {/* Category */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-blue-500" />
+                Category
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {EXPENSE_CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`p-3 rounded-lg text-sm font-medium transition-all border ${
+                      selectedCategory === cat
+                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-700'
+                        : 'bg-white/20 border-white/30 text-gray-700 hover:bg-white/40'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-orange-500" />
+                Date
+              </label>
+              <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="pl-10 glass-card-subtle border-0 focus:ring-2 focus:ring-purple-500"
+                className="glass-input w-full"
+                required
               />
-              <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleAddExpense}
+              className="glass-button-primary w-full py-4 text-lg font-semibold hover-lift"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add Expense
+            </button>
+          </div>
+        </div>
+
+        {/* Tips Card */}
+        <div className="float-card hover-lift">
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              💡 Quick Tips
+            </h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>• Use quick amount buttons for common purchases</p>
+              <p>• Choose the right category for better insights</p>
+              <p>• Add expenses immediately to avoid forgetting</p>
             </div>
           </div>
-
-          {/* Submit Button */}
-          <Button
-            onClick={handleAddExpense}
-            className="w-full gradient-button-primary text-white font-semibold py-4 text-lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Expense
-          </Button>
         </div>
 
-        {/* Quick Amount Buttons */}
-        <div className="glass-card-subtle p-4">
-          <p className="text-sm text-gray-600 mb-3">Quick amounts</p>
-          <div className="grid grid-cols-4 gap-2">
-            {[5, 10, 25, 50].map((quickAmount) => (
-              <button
-                key={quickAmount}
-                onClick={() => setAmount(quickAmount.toString())}
-                className="p-2 rounded-lg glass-card-modern text-sm font-medium text-gray-700 hover:scale-105 transition-transform"
-              >
-                ${quickAmount}
-              </button>
-            ))}
+        {/* Budget Status Preview */}
+        {budget && (
+          <div className="float-card hover-lift">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3">Budget Status</h3>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Remaining</p>
+                  <p className="text-lg font-bold gradient-text-accent">
+                    {formatCurrency(progress.remaining.toString())}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Spent</p>
+                  <p className="text-lg font-bold text-orange-600">
+                    {Math.round(progress.percentage)}%
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

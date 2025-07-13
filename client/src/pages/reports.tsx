@@ -1,46 +1,24 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, TrendingUp, PieChart, Calendar, Filter, BarChart3, LineChart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  Filler,
-} from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, TrendingUp, PieChart, BarChart3, Calendar, Target, DollarSign } from "lucide-react";
+import { Link } from "wouter";
 import { useFinance, useFinanceStats } from "@/hooks/use-finance";
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  Filler
-);
+import Chart from 'chart.js/auto';
 
 type ReportView = 'weekly' | 'monthly';
 type ChartType = 'line' | 'pie';
 
 export default function Reports() {
-  const [, setLocation] = useLocation();
-  const [selectedView, setSelectedView] = useState<ReportView>('weekly');
+  const { balance, budget, progress, expenses, categoryTotals } = useFinance();
+  const { getTopCategories, getWeeklyTrend, getBudgetHealth } = useFinanceStats();
+  const [currentView, setCurrentView] = useState<ReportView>('weekly');
   const [chartType, setChartType] = useState<ChartType>('line');
-  const { expenses, categoryTotals, balance } = useFinance();
-  const { getTopCategories, getWeeklyTrend, getMonthlyTrend } = useFinanceStats();
+  
+  const lineChartRef = useRef<HTMLCanvasElement>(null);
+  const pieChartRef = useRef<HTMLCanvasElement>(null);
+  const lineChartInstance = useRef<Chart | null>(null);
+  const pieChartInstance = useRef<Chart | null>(null);
 
+  // Format currency for display
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -48,432 +26,339 @@ export default function Reports() {
     }).format(amount);
   };
 
-  // Generate line chart data
-  const generateLineChartData = () => {
-    const isWeekly = selectedView === 'weekly';
-    
-    if (isWeekly) {
-      // Weekly data - last 7 days
-      const dates = [];
-      const amounts = [];
-      const today = new Date();
-      
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        dates.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-        
-        // Calculate spending for this day
-        const dayExpenses = expenses.filter(expense => {
-          const expenseDate = new Date(expense.date);
-          return expenseDate.toDateString() === date.toDateString();
-        });
-        
-        const dayTotal = dayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-        amounts.push(dayTotal);
-      }
-      
-      return {
-        labels: dates,
-        datasets: [
-          {
-            label: 'Daily Spending',
-            data: amounts,
-            borderColor: 'rgba(139, 92, 246, 1)',
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: 'rgba(139, 92, 246, 1)',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 6,
-            pointHoverRadius: 8,
-          },
-        ],
-      };
-    } else {
-      // Monthly data - last 4 weeks
-      const weeks = [];
-      const amounts = [];
-      const today = new Date();
-      
-      for (let i = 3; i >= 0; i--) {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - (i * 7 + 6));
-        const weekEnd = new Date(today);
-        weekEnd.setDate(today.getDate() - (i * 7));
-        
-        weeks.push(`Week ${4 - i}`);
-        
-        // Calculate spending for this week
-        const weekExpenses = expenses.filter(expense => {
-          const expenseDate = new Date(expense.date);
-          return expenseDate >= weekStart && expenseDate <= weekEnd;
-        });
-        
-        const weekTotal = weekExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-        amounts.push(weekTotal);
-      }
-      
-      return {
-        labels: weeks,
-        datasets: [
-          {
-            label: 'Weekly Spending',
-            data: amounts,
-            borderColor: 'rgba(244, 114, 182, 1)',
-            backgroundColor: 'rgba(244, 114, 182, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: 'rgba(244, 114, 182, 1)',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 6,
-            pointHoverRadius: 8,
-          },
-        ],
-      };
-    }
-  };
+  // Generate weekly trend data
+  const weeklyData = getWeeklyTrend();
+  const topCategories = getTopCategories(5);
+  const budgetHealth = getBudgetHealth();
 
-  // Generate pie chart data
-  const generatePieChartData = () => {
-    const topCategories = getTopCategories(6);
-    
-    if (topCategories.length === 0) {
-      return {
-        labels: ['No Data'],
-        datasets: [
-          {
-            data: [1],
-            backgroundColor: ['rgba(229, 231, 235, 0.8)'],
-            borderColor: ['rgba(156, 163, 175, 1)'],
-            borderWidth: 2,
+  // Chart colors with glassmorphic gradient
+  const chartColors = [
+    'rgba(139, 92, 246, 0.8)',
+    'rgba(236, 72, 153, 0.8)',
+    'rgba(6, 182, 212, 0.8)',
+    'rgba(245, 158, 11, 0.8)',
+    'rgba(34, 197, 94, 0.8)',
+    'rgba(168, 85, 247, 0.8)'
+  ];
+
+  const chartBorderColors = [
+    'rgba(139, 92, 246, 1)',
+    'rgba(236, 72, 153, 1)',
+    'rgba(6, 182, 212, 1)',
+    'rgba(245, 158, 11, 1)',
+    'rgba(34, 197, 94, 1)',
+    'rgba(168, 85, 247, 1)'
+  ];
+
+  // Initialize line chart
+  useEffect(() => {
+    if (lineChartRef.current && chartType === 'line') {
+      const ctx = lineChartRef.current.getContext('2d');
+      
+      if (lineChartInstance.current) {
+        lineChartInstance.current.destroy();
+      }
+
+      if (ctx) {
+        lineChartInstance.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: weeklyData.map(d => d.day),
+            datasets: [{
+              label: 'Daily Spending',
+              data: weeklyData.map(d => d.amount),
+              borderColor: 'rgba(139, 92, 246, 1)',
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+            }]
           },
-        ],
-      };
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value;
+                  },
+                  color: '#6b7280'
+                },
+                grid: {
+                  color: 'rgba(107, 114, 128, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#6b7280'
+                },
+                grid: {
+                  color: 'rgba(107, 114, 128, 0.1)'
+                }
+              }
+            }
+          }
+        });
+      }
     }
 
-    const colors = [
-      'rgba(139, 92, 246, 0.8)',   // Purple
-      'rgba(244, 114, 182, 0.8)',  // Pink
-      'rgba(6, 182, 212, 0.8)',    // Cyan
-      'rgba(251, 191, 36, 0.8)',   // Amber
-      'rgba(34, 197, 94, 0.8)',    // Green
-      'rgba(239, 68, 68, 0.8)',    // Red
-    ];
-
-    const borderColors = [
-      'rgba(139, 92, 246, 1)',
-      'rgba(244, 114, 182, 1)',
-      'rgba(6, 182, 212, 1)',
-      'rgba(251, 191, 36, 1)',
-      'rgba(34, 197, 94, 1)',
-      'rgba(239, 68, 68, 1)',
-    ];
-
-    return {
-      labels: topCategories.map(cat => cat.category),
-      datasets: [
-        {
-          data: topCategories.map(cat => cat.amount),
-          backgroundColor: colors.slice(0, topCategories.length),
-          borderColor: borderColors.slice(0, topCategories.length),
-          borderWidth: 2,
-          hoverOffset: 10,
-        },
-      ],
+    return () => {
+      if (lineChartInstance.current) {
+        lineChartInstance.current.destroy();
+      }
     };
-  };
+  }, [weeklyData, chartType]);
 
-  const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#374151',
-        bodyColor: '#374151',
-        borderColor: 'rgba(139, 92, 246, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 12,
-        displayColors: false,
-        callbacks: {
-          label: (context: any) => `Spent: ${formatCurrency(context.parsed.y)}`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        border: {
-          display: false,
-        },
-        ticks: {
-          color: '#9CA3AF',
-          font: {
-            size: 12,
-          },
-        },
-      },
-      y: {
-        grid: {
-          color: 'rgba(156, 163, 175, 0.2)',
-        },
-        border: {
-          display: false,
-        },
-        ticks: {
-          color: '#9CA3AF',
-          font: {
-            size: 12,
-          },
-          callback: (value: any) => formatCurrency(value),
-        },
-      },
-    },
-    animation: {
-      duration: 1000,
-      easing: 'easeInOutCubic',
-    },
-  };
+  // Initialize pie chart
+  useEffect(() => {
+    if (pieChartRef.current && chartType === 'pie') {
+      const ctx = pieChartRef.current.getContext('2d');
+      
+      if (pieChartInstance.current) {
+        pieChartInstance.current.destroy();
+      }
 
-  const pieChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: {
-          color: '#374151',
-          font: {
-            size: 12,
+      if (ctx && topCategories.length > 0) {
+        pieChartInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: topCategories.map(cat => cat.name),
+            datasets: [{
+              data: topCategories.map(cat => cat.amount),
+              backgroundColor: chartColors.slice(0, topCategories.length),
+              borderColor: chartBorderColors.slice(0, topCategories.length),
+              borderWidth: 2,
+              hoverOffset: 4
+            }]
           },
-          padding: 20,
-          usePointStyle: true,
-          pointStyle: 'circle',
-        },
-      },
-      tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#374151',
-        bodyColor: '#374151',
-        borderColor: 'rgba(139, 92, 246, 0.2)',
-        borderWidth: 1,
-        cornerRadius: 12,
-        callbacks: {
-          label: (context: any) => {
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : '0';
-            return `${context.label}: ${formatCurrency(context.parsed)} (${percentage}%)`;
-          },
-        },
-      },
-    },
-    animation: {
-      animateRotate: true,
-      animateScale: true,
-      duration: 1000,
-      easing: 'easeInOutCubic',
-    },
-  };
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  color: '#6b7280'
+                }
+              }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+    }
+
+    return () => {
+      if (pieChartInstance.current) {
+        pieChartInstance.current.destroy();
+      }
+    };
+  }, [topCategories, chartType]);
 
   const handleViewChange = (view: ReportView) => {
-    setSelectedView(view);
-  };
-
-  const handleBack = () => {
-    setLocation("/");
+    setCurrentView(view);
   };
 
   const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const categoryCount = Object.keys(categoryTotals).length;
+  const averageDaily = totalSpent / 7; // Assuming weekly view
 
   return (
-    <div className="max-w-sm mx-auto min-h-screen bg-gradient-to-br from-[hsl(var(--blue-flow-50))] to-[hsl(var(--blue-flow-100))] relative overflow-hidden">
-      {/* Header */}
-      <motion.header 
-        className="pt-12 pb-6 px-6"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="h-6"></div>
-        
-        <div className="flex items-center justify-between mb-8">
-          <motion.button
-            onClick={handleBack}
-            className="w-12 h-12 rounded-full neuro-shadow-sm bg-gradient-to-br from-[hsl(var(--blue-flow-100))] to-white flex items-center justify-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-6 h-6 text-[hsl(var(--blue-flow-600))]" />
-          </motion.button>
-          
+    <div className="min-h-screen pb-32">
+      <div className="float-layout">
+        {/* Header */}
+        <div className="flex items-center justify-between pt-12 pb-6">
+          <Link href="/">
+            <button className="glass-button-secondary p-3 rounded-xl hover-lift">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Link>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-[hsl(var(--blue-flow-700))]">Financial Report</h1>
+            <h1 className="text-xl font-bold gradient-text-primary">Reports</h1>
+            <p className="text-sm text-gray-500 mt-1">Financial insights</p>
+          </div>
+          <div className="w-12 h-12"></div> {/* Spacer */}
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="float-card hover-lift glow-on-hover text-center">
+            <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <div className="text-2xl font-bold gradient-text-primary">
+              {formatCurrency(totalSpent)}
+            </div>
+            <p className="text-xs text-gray-600">Total Spent</p>
+          </div>
+          <div className="float-card hover-lift glow-on-hover text-center">
+            <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
+            <div className="text-2xl font-bold gradient-text-accent">
+              {formatCurrency(averageDaily)}
+            </div>
+            <p className="text-xs text-gray-600">Daily Average</p>
+          </div>
+        </div>
+
+        {/* View Toggle */}
+        <div className="float-card hover-lift glow-on-hover mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold gradient-text-primary">View Controls</h3>
           </div>
           
-          <div className="w-12"></div>
-        </div>
-      </motion.header>
-
-      {/* Content */}
-      <motion.main 
-        className="px-6 pb-24"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-      >
-        <div className="space-y-6">
-          {/* Chart Type Toggle */}
-          <motion.div
-            className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-          >
-            <div className="flex space-x-4">
-              {(['line', 'pie'] as ChartType[]).map((type) => (
-                <Button
-                  key={type}
-                  onClick={() => setChartType(type)}
-                  className={`flex-1 rounded-2xl py-3 font-semibold transition-neuro border-0 ${
-                    chartType === type
-                      ? 'neuro-inset bg-gradient-to-br from-[hsl(var(--blue-flow-300))] to-[hsl(var(--blue-flow-400))] text-white'
-                      : 'glass-morphism text-[hsl(var(--blue-flow-700))] bg-transparent hover:bg-transparent'
-                  }`}
-                >
-                  <motion.span
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center justify-center gap-2"
-                  >
-                    {type === 'line' ? <LineChart className="w-4 h-4" /> : <PieChart className="w-4 h-4" />}
-                    {type === 'line' ? 'Trend' : 'Categories'}
-                  </motion.span>
-                </Button>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Time Period Toggle (only for line chart) */}
-          {chartType === 'line' && (
-            <motion.div
-              className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.3 }}
+          {/* Time Period Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => handleViewChange('weekly')}
+              className={`flex-1 p-3 rounded-lg text-sm font-medium transition-all ${
+                currentView === 'weekly'
+                  ? 'bg-purple-500/20 border border-purple-500/50 text-purple-700'
+                  : 'bg-white/20 border border-white/30 text-gray-700 hover:bg-white/40'
+              }`}
             >
-              <div className="flex space-x-4">
-                {(['weekly', 'monthly'] as ReportView[]).map((view) => (
-                  <Button
-                    key={view}
-                    onClick={() => handleViewChange(view)}
-                    className={`flex-1 rounded-2xl py-3 font-semibold transition-neuro border-0 ${
-                      selectedView === view
-                        ? 'neuro-inset bg-gradient-to-br from-[hsl(var(--blue-flow-300))] to-[hsl(var(--blue-flow-400))] text-white'
-                        : 'glass-morphism text-[hsl(var(--blue-flow-700))] bg-transparent hover:bg-transparent'
-                    }`}
-                  >
-                    <motion.span
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {view.charAt(0).toUpperCase() + view.slice(1)}
-                    </motion.span>
-                  </Button>
+              <Calendar className="w-4 h-4 mx-auto mb-1" />
+              Weekly
+            </button>
+            <button
+              onClick={() => handleViewChange('monthly')}
+              className={`flex-1 p-3 rounded-lg text-sm font-medium transition-all ${
+                currentView === 'monthly'
+                  ? 'bg-purple-500/20 border border-purple-500/50 text-purple-700'
+                  : 'bg-white/20 border border-white/30 text-gray-700 hover:bg-white/40'
+              }`}
+            >
+              <Calendar className="w-4 h-4 mx-auto mb-1" />
+              Monthly
+            </button>
+          </div>
+
+          {/* Chart Type Toggle */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setChartType('line')}
+              className={`flex-1 p-3 rounded-lg text-sm font-medium transition-all ${
+                chartType === 'line'
+                  ? 'bg-blue-500/20 border border-blue-500/50 text-blue-700'
+                  : 'bg-white/20 border border-white/30 text-gray-700 hover:bg-white/40'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 mx-auto mb-1" />
+              Trend
+            </button>
+            <button
+              onClick={() => setChartType('pie')}
+              className={`flex-1 p-3 rounded-lg text-sm font-medium transition-all ${
+                chartType === 'pie'
+                  ? 'bg-blue-500/20 border border-blue-500/50 text-blue-700'
+                  : 'bg-white/20 border border-white/30 text-gray-700 hover:bg-white/40'
+              }`}
+            >
+              <PieChart className="w-4 h-4 mx-auto mb-1" />
+              Categories
+            </button>
+          </div>
+        </div>
+
+        {/* Chart Container */}
+        <div className="float-card hover-lift glow-on-hover mb-6">
+          <div className="p-6">
+            <h3 className="text-lg font-bold gradient-text-primary mb-4">
+              {chartType === 'line' ? 'Spending Trend' : 'Category Breakdown'}
+            </h3>
+            <div className="chart-container-glass relative h-64">
+              {chartType === 'line' ? (
+                <canvas ref={lineChartRef} className="w-full h-full"></canvas>
+              ) : (
+                <canvas ref={pieChartRef} className="w-full h-full"></canvas>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Category Details */}
+        {topCategories.length > 0 && (
+          <div className="float-card hover-lift glow-on-hover mb-6">
+            <div className="p-6">
+              <h3 className="text-lg font-bold gradient-text-primary mb-4">Top Categories</h3>
+              <div className="space-y-3">
+                {topCategories.map((category, index) => (
+                  <div key={category.name} className="flex justify-between items-center p-3 bg-white/20 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: chartColors[index] }}
+                      ></div>
+                      <span className="font-medium text-gray-700">{category.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-800">
+                        {formatCurrency(category.amount)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {Math.round((category.amount / totalSpent) * 100)}%
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
+        )}
 
-          {/* Chart Display */}
-          <motion.div
-            className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--blue-flow-200))] to-[hsl(var(--blue-flow-300))] flex items-center justify-center">
-                {chartType === 'line' ? 
-                  <BarChart3 className="w-5 h-5 text-[hsl(var(--blue-flow-700))]" /> :
-                  <PieChart className="w-5 h-5 text-[hsl(var(--blue-flow-700))]" />
-                }
+        {/* Budget Health */}
+        {budget && (
+          <div className="float-card hover-lift glow-on-hover">
+            <div className="p-6">
+              <h3 className="text-lg font-bold gradient-text-primary mb-4">Budget Health</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <DollarSign className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                  <div className="text-lg font-bold text-gray-800">
+                    {formatCurrency(budget.amount)}
+                  </div>
+                  <div className="text-xs text-gray-600">Budget</div>
+                </div>
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+                  <div className="text-lg font-bold text-gray-800">
+                    {formatCurrency(progress.spent)}
+                  </div>
+                  <div className="text-xs text-gray-600">Spent</div>
+                </div>
+                <div className="text-center p-3 bg-white/20 rounded-lg">
+                  <Target className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                  <div className="text-lg font-bold text-gray-800">
+                    {Math.round(progress.percentage)}%
+                  </div>
+                  <div className="text-xs text-gray-600">Used</div>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-[hsl(var(--blue-flow-700))]">
-                  {chartType === 'line' 
-                    ? `${selectedView === 'weekly' ? 'Weekly' : 'Monthly'} Spending Trend`
-                    : 'Category Breakdown'
-                  }
-                </h3>
-                <p className="text-sm text-[hsl(var(--blue-flow-500))]">
-                  {chartType === 'line' ? 'Spending over time' : 'Spending by category'}
+              
+              <div className="mt-4 p-3 bg-white/20 rounded-lg text-center">
+                <p className="text-sm font-medium text-gray-700">
+                  Budget Status: <span className={`font-bold ${
+                    progress.percentage < 50 ? 'text-green-600' :
+                    progress.percentage < 80 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {budgetHealth}
+                  </span>
                 </p>
               </div>
             </div>
-            
-            {/* Chart Container */}
-            <div className="h-80 bg-gradient-to-br from-[hsl(var(--blue-flow-100))] to-[hsl(var(--blue-flow-200))] rounded-2xl neuro-inset-sm p-4">
-              {chartType === 'line' ? (
-                <Line data={generateLineChartData()} options={lineChartOptions} />
-              ) : (
-                <Doughnut data={generatePieChartData()} options={pieChartOptions} />
-              )}
-            </div>
-          </motion.div>
-
-          {/* Summary Stats */}
-          <motion.div
-            className="grid grid-cols-2 gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
-          >
-            <div className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-2xl p-4 neuro-shadow-sm text-center">
-              <p className="text-sm text-[hsl(var(--blue-flow-500))] font-medium">Total Spent</p>
-              <p className="text-xl font-bold text-[hsl(var(--blue-flow-700))] mt-1">{formatCurrency(totalSpent)}</p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-2xl p-4 neuro-shadow-sm text-center">
-              <p className="text-sm text-[hsl(var(--blue-flow-500))] font-medium">Categories</p>
-              <p className="text-xl font-bold text-[hsl(var(--blue-flow-700))] mt-1">{categoryCount}</p>
-            </div>
-          </motion.div>
-
-          {/* Insights Card */}
-          <motion.div
-            className="bg-gradient-to-br from-white to-[hsl(var(--blue-flow-50))] rounded-3xl p-6 neuro-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.3 }}
-          >
-            <h4 className="font-semibold text-[hsl(var(--blue-flow-700))] mb-3">Quick Insights</h4>
-            <div className="space-y-2 text-sm text-[hsl(var(--blue-flow-600))]">
-              {expenses.length === 0 ? (
-                <p>Add some expenses to see spending insights!</p>
-              ) : (
-                <>
-                  <p>• Total expenses: {expenses.length} transactions</p>
-                  <p>• Average per transaction: {formatCurrency(totalSpent / expenses.length)}</p>
-                  {categoryCount > 0 && (
-                    <p>• Most used category: {getTopCategories(1)[0]?.category || 'None'}</p>
-                  )}
-                </>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </motion.main>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

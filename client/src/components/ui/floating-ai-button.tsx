@@ -56,10 +56,10 @@ export default function FloatingAIButton({ className = "" }: FloatingAIButtonPro
 
   return (
     <>
-      <div className={`fixed bottom-20 right-6 z-40 ${className}`}>
+      <div className={`ai-assistant-floating z-40 ${className}`}>
         <motion.button
           onClick={handleClick}
-          className="relative w-14 h-14 glass-morphism-dark rounded-full flex items-center justify-center transition-neuro overflow-hidden"
+          className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
           animate={{
             y: [0, -10, 0],
             opacity: 1,
