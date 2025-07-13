@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive } from "lucide-react";
+import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive, Mic } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
@@ -7,6 +7,10 @@ import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { ArchiveManager } from "@/lib/archive-manager";
 import { AIAssistant } from "@/lib/ai-assistant";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
 interface Expense {
   id: string;
@@ -25,6 +29,32 @@ export default function SimpleHome() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(500);
+  
+  // Mock data for the new design
+  const topWidgets = [
+    { label: "Main Balance", amount: 442.05, color: "from-blue-400 to-blue-600" },
+    { label: "Weekly Expenses", amount: 118.86, color: "from-purple-400 to-purple-600" },
+    { label: "Income from Salary", amount: 520.00, color: "from-green-400 to-green-600" }
+  ];
+  
+  const weeklySpendingCharts = [
+    { category: "Food", amount: 89.50, color: ["#FF6B9D", "#C44569"], percentage: 35 },
+    { category: "Transport", amount: 45.20, color: ["#4ECDC4", "#44A08D"], percentage: 20 },
+    { category: "Entertainment", amount: 67.30, color: ["#FFD93D", "#F39C12"], percentage: 25 },
+    { category: "Shopping", amount: 123.80, color: ["#6C7B7F", "#3B82F6"], percentage: 45 }
+  ];
+  
+  const incomeData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [{
+      label: 'Income',
+      data: [2800, 3200, 2900, 3400, 3100, 3600],
+      borderColor: 'rgb(147, 51, 234)',
+      backgroundColor: 'rgba(147, 51, 234, 0.1)',
+      fill: true,
+      tension: 0.4
+    }]
+  };
 
   // Load expenses and budget settings from localStorage
   useEffect(() => {
@@ -38,9 +68,8 @@ export default function SimpleHome() {
         const total = parsedExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
         setTotalSpent(total);
         
-        // Use custom budget amount if set, otherwise default to $500
-        const storedBudgetAmount = localStorage.getItem('blueflow_budget_amount');
-        const budget = storedBudgetAmount ? parseFloat(storedBudgetAmount) : 500;
+        // Calculate remaining budget
+        const budget = parseFloat(localStorage.getItem('blueflow_budget_amount') || '500');
         setRemainingBudget(budget - total);
       }
     };
@@ -98,16 +127,9 @@ export default function SimpleHome() {
     }).format(amount);
   };
 
-  const getBudgetPercentage = () => {
-    // Use custom budget amount if set, otherwise default to $500
-    const storedBudgetAmount = localStorage.getItem('blueflow_budget_amount');
-    const budget = storedBudgetAmount ? parseFloat(storedBudgetAmount) : 500;
-    return budget > 0 ? (totalSpent / budget) * 100 : 0;
-  };
-
-  const getBudgetColor = () => {
-    const percentage = getBudgetPercentage();
-    if (percentage <= 60) return 'from-green-400 to-emerald-500';
+  const getBudgetColor = (percentage: number) => {
+    if (percentage <= 50) return 'from-green-400 to-green-500';
+    if (percentage <= 75) return 'from-yellow-400 to-yellow-500';
     if (percentage <= 85) return 'from-yellow-400 to-orange-500';
     return 'from-red-400 to-red-500';
   };
@@ -133,178 +155,191 @@ export default function SimpleHome() {
     }
   };
 
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        enabled: false
+      }
+    },
+    cutout: '70%'
+  };
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        titleColor: '#334155',
+        bodyColor: '#334155',
+        borderColor: '#e2e8f0',
+        borderWidth: 1
+      }
+    },
+    scales: {
+      x: {
+        display: false
+      },
+      y: {
+        display: false
+      }
+    },
+    elements: {
+      point: {
+        radius: 0
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-cyan-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header with Balance */}
-        <motion.div
+        {/* Header */}
+        <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl"
+          className="flex items-center justify-between pt-8 pb-4"
         >
-          <div className="text-center space-y-2">
-            <p className="text-sm text-slate-600">Current Balance</p>
-            {showBalanceEdit ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={newBalance}
-                  onChange={(e) => setNewBalance(e.target.value)}
-                  placeholder={balance.toString()}
-                  className="flex-1 px-3 py-2 bg-white/30 border border-white/40 rounded-xl text-center font-bold text-2xl focus:outline-none focus:ring-2 focus:ring-purple-300"
-                />
-                <button
-                  onClick={handleBalanceUpdate}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium"
-                >
-                  ✓
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <h1 className="text-3xl font-bold text-slate-800">{formatCurrency(balance)}</h1>
-                <button
-                  onClick={() => setShowBalanceEdit(true)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                >
-                  <Edit3 className="w-4 h-4 text-slate-600" />
-                </button>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-orange-400 rounded-full flex items-center justify-center">
+              <Plus className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-slate-800 font-medium">With Assistant Icon</span>
           </div>
+          <div className="w-6 h-6 bg-orange-100 rounded-md"></div>
         </motion.div>
 
-        {/* Budget Card */}
+        {/* Top Balance Widgets */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl"
+          className="grid grid-cols-3 gap-3"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-500" />
-              <h2 className="text-lg font-semibold text-slate-800">
-                {(() => {
-                  const budgetType = localStorage.getItem('blueflow_budget_type') || 'weekly';
-                  return budgetType.charAt(0).toUpperCase() + budgetType.slice(1);
-                })()} Budget
-              </h2>
+          {topWidgets.map((widget, index) => (
+            <div key={index} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-800">${widget.amount}</p>
+                <p className="text-xs text-slate-600 mt-1">{widget.label}</p>
+              </div>
             </div>
-            <Link href="/budget-settings">
-              <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
-                <Settings className="w-4 h-4 text-slate-600" />
-              </button>
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-slate-800">{formatCurrency(remainingBudget)}</span>
-              <span className="text-sm text-slate-600">
-                of {formatCurrency(
-                  parseFloat(localStorage.getItem('blueflow_budget_amount') || '500')
-                )} remaining
-              </span>
-            </div>
-            
-            <div className="w-full bg-white/30 rounded-full h-3">
-              <div 
-                className={`h-3 rounded-full bg-gradient-to-r ${getBudgetColor()} transition-all duration-300`}
-                style={{ width: `${Math.min(getBudgetPercentage(), 100)}%` }}
-              />
-            </div>
-            
-            <div className="flex justify-between text-sm text-slate-600">
-              <span>Spent: {formatCurrency(totalSpent)}</span>
-              <span>{getBudgetPercentage().toFixed(1)}% used</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowAddExpenseModal(true)}
-            className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-3 font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add Expense
-          </button>
+          ))}
         </motion.div>
 
-        {/* Expense Display */}
+        {/* Weekly Spending */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg"
         >
-          <ExpenseDisplay />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-slate-800">Weekly Spending</h3>
+            <div className="flex gap-2">
+              <span className="text-xs text-purple-500">$2,842.50</span>
+              <span className="text-xs text-blue-500">$4,160.00</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-4">
+            {weeklySpendingCharts.map((chart, index) => (
+              <div key={index} className="text-center">
+                <div className="relative w-16 h-16 mx-auto mb-2">
+                  <Doughnut
+                    data={{
+                      datasets: [{
+                        data: [chart.percentage, 100 - chart.percentage],
+                        backgroundColor: [chart.color[0], '#f1f5f9'],
+                        borderWidth: 0
+                      }]
+                    }}
+                    options={chartOptions}
+                  />
+                </div>
+                <p className="text-xs font-medium text-slate-800">${chart.amount}</p>
+                <p className="text-xs text-slate-500">{chart.category}</p>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Income Breakdown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-4"
+          className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 border border-white/40 shadow-lg"
         >
-          <Link href="/reports">
-            <button className="w-full bg-white/20 backdrop-blur-xl rounded-2xl p-4 border border-white/30 hover:bg-white/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-xl">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-slate-800">Analytics</p>
-                  <p className="text-sm text-slate-600">View Reports</p>
-                </div>
-              </div>
-            </button>
-          </Link>
-
-          <Link href="/archive">
-            <button className="w-full bg-white/20 backdrop-blur-xl rounded-2xl p-4 border border-white/30 hover:bg-white/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-xl">
-                  <Archive className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-slate-800">Archive</p>
-                  <p className="text-sm text-slate-600">Past Months</p>
-                </div>
-              </div>
-            </button>
-          </Link>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-slate-800">Income Breakdown</h3>
+            <div className="flex gap-2">
+              <span className="text-xs text-purple-500">$2,911.43</span>
+              <span className="text-xs text-orange-500">$3,184.00</span>
+            </div>
+          </div>
+          
+          <div className="h-32 mb-4">
+            <Line data={incomeData} options={lineChartOptions} />
+          </div>
+          
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>$0-$1,000</span>
+            <span>$1,000-$2,000</span>
+            <span>$2,000-$3,000</span>
+            <span>$3,000-$4,000</span>
+          </div>
         </motion.div>
 
-        {/* Save Month Button */}
-        {expenses.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Archive className="w-5 h-5 text-purple-500" />
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">Monthly Archive</h3>
-                <p className="text-sm text-slate-600">Save current month and start fresh</p>
+        {/* Smart Budget Track */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Smart Budget Track</h3>
+          
+          <div className="text-center mb-6">
+            <p className="text-3xl font-bold text-slate-800">$610.00</p>
+            
+            <div className="mt-4 mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto">
+                <Mic className="w-8 h-8 text-white" />
               </div>
             </div>
             
-            <motion.button
-              onClick={handleSaveMonth}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-purple-500/80 to-pink-500/80 backdrop-blur-xl border border-white/30 hover:from-purple-600/80 hover:to-pink-600/80 text-white rounded-2xl py-3 font-semibold transition-all duration-200 shadow-xl flex items-center justify-center gap-2"
-            >
-              <Archive className="w-5 h-5" />
-              Save Current Month
-            </motion.button>
-          </motion.div>
-        )}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-lg p-3">
+                <p className="text-green-700 font-medium">$3,535.00 SAVED</p>
+                <p className="text-green-600 text-xs">Monthly</p>
+              </div>
+              <div className="bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg p-3">
+                <p className="text-blue-700 font-medium">$2,547.00 SAVED</p>
+                <p className="text-blue-600 text-xs">Weekly</p>
+              </div>
+              <div className="bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg p-3">
+                <p className="text-purple-700 font-medium">$4,456.00 SAVED</p>
+                <p className="text-purple-600 text-xs">Daily</p>
+              </div>
+              <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-lg p-3">
+                <p className="text-orange-700 font-medium">$2,365.00 SAVED</p>
+                <p className="text-orange-600 text-xs">Hourly</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/20 backdrop-blur-xl border-t border-white/30">
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-white/30">
           <div className="max-w-md mx-auto flex justify-around py-3">
             <Link href="/">
               <button className="flex flex-col items-center gap-1 px-4 py-2 text-purple-600">
@@ -341,6 +376,9 @@ export default function SimpleHome() {
           isOpen={showAddExpenseModal} 
           onClose={() => setShowAddExpenseModal(false)} 
         />
+        
+        {/* Bottom Navigation Spacer */}
+        <div className="h-20"></div>
       </div>
     </div>
   );
