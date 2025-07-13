@@ -1,0 +1,135 @@
+/* Global styles for Float Flow compatibility */
+
+/* Responsive breakpoints for Float Flow */
+:root {
+  /* Primary BlueFlow colors */
+  --primary-purple: #8b5cf6;
+  --primary-blue: #3b82f6;
+  --primary-cyan: #06b6d4;
+  
+  /* Glass morphism variables */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* Responsive spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+}
+
+/* Float-compatible responsive utilities */
+.float-responsive {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.float-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px var(--glass-shadow);
+  transition: all 0.3s ease;
+}
+
+.float-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px var(--glass-shadow);
+}
+
+/* Responsive text scaling */
+.text-responsive-sm {
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+}
+
+.text-responsive-md {
+  font-size: clamp(0.875rem, 3vw, 1rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1rem, 4vw, 1.25rem);
+}
+
+.text-responsive-xl {
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
+}
+
+.text-responsive-2xl {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+}
+
+/* Responsive grid systems */
+.grid-responsive-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.grid-responsive-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.grid-responsive-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+/* Float-compatible animations */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Responsive container queries for Float Flow */
+@container (max-width: 480px) {
+  .container-responsive {
+    padding: var(--spacing-sm);
+  }
+}
+
+@container (min-width: 481px) and (max-width: 768px) {
+  .container-responsive {
+    padding: var(--spacing-md);
+  }
+}
+
+@container (min-width: 769px) {
+  .container-responsive {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Ensure no fixed dimensions for Float Flow */
+.no-fixed-dimensions {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Flexible layouts for Float Flow */
+.flex-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-responsive > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}

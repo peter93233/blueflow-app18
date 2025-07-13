@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive, Mic, LogOut } from "lucide-react";
-import { Link } from "wouter";
+import { LogOut, Mic } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
-import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
-import { ArchiveManager } from "@/lib/archive-manager";
-import { AIAssistant } from "@/lib/ai-assistant";
+import { BalanceCard } from "@/components/dashboard/balance-card";
+import { SpendingChart } from "@/components/dashboard/spending-chart";
+import { BudgetProgress } from "@/components/dashboard/budget-progress";
+import { BottomNavigation } from "@/components/navigation/bottom-nav";
+import { ResponsiveContainer } from "@/components/layout/responsive-container";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 
@@ -204,8 +205,8 @@ export default function SimpleHome() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 via-blue-50 to-cyan-50 p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <ResponsiveContainer>
+      <div className="space-y-4 sm:space-y-6">
         {/* Header with BlueFlow Logo */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -242,44 +243,15 @@ export default function SimpleHome() {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-          className="grid grid-cols-3 gap-3 mt-4"
+          className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4"
         >
           {topWidgets.map((widget, index) => (
-            <motion.div
+            <BalanceCard
               key={index}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
-                delay: 0.2 + index * 0.1, 
-                duration: 0.5, 
-                ease: "easeOut" 
-              }}
-              whileHover={{ 
-                scale: 1.05, 
-                y: -2,
-                transition: { duration: 0.2 }
-              }}
-              className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            >
-              <div className="text-center">
-                <motion.p
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.4 }}
-                  className="text-2xl font-bold text-slate-800"
-                >
-                  ${widget.amount}
-                </motion.p>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                  className="text-xs text-slate-600 mt-1 font-medium"
-                >
-                  {widget.label}
-                </motion.p>
-              </div>
-            </motion.div>
+              title={widget.label}
+              amount={widget.amount.toString()}
+              index={index}
+            />
           ))}
         </motion.div>
 
@@ -298,69 +270,16 @@ export default function SimpleHome() {
             </div>
           </div>
           
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {weeklySpendingCharts.map((chart, index) => (
-              <motion.div
+              <SpendingChart
                 key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ 
-                  delay: 0.6 + index * 0.15, 
-                  duration: 0.5, 
-                  ease: "easeOut" 
-                }}
-                whileHover={{ 
-                  scale: 1.1, 
-                  transition: { duration: 0.2 }
-                }}
-                className="text-center"
-              >
-                <motion.div
-                  initial={{ rotate: -180, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  transition={{ 
-                    delay: 0.7 + index * 0.15, 
-                    duration: 0.8, 
-                    ease: "easeOut" 
-                  }}
-                  className="relative w-16 h-16 mx-auto mb-2"
-                >
-                  <Doughnut
-                    data={{
-                      datasets: [{
-                        data: [chart.percentage, 100 - chart.percentage],
-                        backgroundColor: [chart.color[0], '#f1f5f9'],
-                        borderWidth: 0
-                      }]
-                    }}
-                    options={{
-                      ...chartOptions,
-                      animation: {
-                        animateRotate: true,
-                        animateScale: true,
-                        duration: 1000,
-                        delay: (index * 200) + 800
-                      }
-                    }}
-                  />
-                </motion.div>
-                <motion.p
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.9 + index * 0.1, duration: 0.3 }}
-                  className="text-xs font-medium text-slate-800"
-                >
-                  ${chart.amount}
-                </motion.p>
-                <motion.p
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 1.0 + index * 0.1, duration: 0.3 }}
-                  className="text-xs text-slate-500"
-                >
-                  {chart.category}
-                </motion.p>
-              </motion.div>
+                category={chart.category}
+                amount={chart.amount.toString()}
+                percentage={chart.percentage}
+                color={chart.color}
+                index={index}
+              />
             ))}
           </div>
         </motion.div>
@@ -420,52 +339,12 @@ export default function SimpleHome() {
         >
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Smart Budget Track</h3>
           
-          <div className="text-center mb-6">
-            <motion.p
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ 
-                delay: 1.2, 
-                duration: 0.6, 
-                ease: "easeOut" 
-              }}
-              className="text-3xl font-bold text-slate-800"
-            >
-              $610.00
-            </motion.p>
-            
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ 
-                delay: 1.4, 
-                duration: 0.5, 
-                ease: "easeOut" 
-              }}
-              whileHover={{ 
-                scale: 1.1, 
-                transition: { duration: 0.2 }
-              }}
-              className="mt-4 mb-4"
-            >
-              <motion.div
-                animate={{ 
-                  boxShadow: [
-                    "0 0 0 0 rgba(147, 51, 234, 0.4)",
-                    "0 0 0 10px rgba(147, 51, 234, 0.1)",
-                    "0 0 0 20px rgba(147, 51, 234, 0)"
-                  ]
-                }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
-                }}
-                className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto cursor-pointer"
-              >
-                <Mic className="w-8 h-8 text-white" />
-              </motion.div>
-            </motion.div>
+          <BudgetProgress
+            currentAmount="610.00"
+            totalBudget="800.00"
+            percentage={75}
+            onAddExpense={() => setShowAddExpenseModal(true)}
+          />
             
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-lg p-3">
@@ -485,38 +364,10 @@ export default function SimpleHome() {
                 <p className="text-orange-600 text-xs">Hourly</p>
               </div>
             </div>
-          </div>
         </motion.div>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-white/30">
-          <div className="max-w-md mx-auto flex justify-around py-3">
-            <Link href="/">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-purple-600">
-                <DollarSign className="w-5 h-5" />
-                <span className="text-xs font-medium">Home</span>
-              </button>
-            </Link>
-            <Link href="/add-expense">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
-                <Plus className="w-5 h-5" />
-                <span className="text-xs font-medium">Add</span>
-              </button>
-            </Link>
-            <Link href="/reports">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
-                <BarChart3 className="w-5 h-5" />
-                <span className="text-xs font-medium">Reports</span>
-              </button>
-            </Link>
-            <Link href="/budget-settings">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
-                <Settings className="w-5 h-5" />
-                <span className="text-xs font-medium">Settings</span>
-              </button>
-            </Link>
-          </div>
-        </div>
+        <BottomNavigation />
 
         {/* Floating AI Button */}
         <FloatingAIButton />
@@ -527,9 +378,7 @@ export default function SimpleHome() {
           onClose={() => setShowAddExpenseModal(false)} 
         />
         
-        {/* Bottom Navigation Spacer */}
-        <div className="h-20"></div>
       </div>
-    </div>
+    </ResponsiveContainer>
   );
 }
