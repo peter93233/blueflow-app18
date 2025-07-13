@@ -5,21 +5,31 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationContainer } from "@/components/ui/notification-toast";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useAuth } from "@/hooks/useAuth";
 import SimpleHome from "@/pages/simple-home";
 import SimpleBudgetSettings from "@/pages/simple-budget-settings";
 import SimpleReports from "@/pages/simple-reports";
 import ArchiveViewer from "@/pages/archive-viewer";
 import AddExpense from "@/pages/add-expense";
+import { Landing } from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
   return (
     <Switch>
-      <Route path="/" component={SimpleHome} />
-      <Route path="/add-expense" component={AddExpense} />
-      <Route path="/budget-settings" component={SimpleBudgetSettings} />
-      <Route path="/reports" component={SimpleReports} />
-      <Route path="/archive" component={ArchiveViewer} />
+      {isLoading || !isAuthenticated ? (
+        <Route path="/" component={Landing} />
+      ) : (
+        <>
+          <Route path="/" component={SimpleHome} />
+          <Route path="/add-expense" component={AddExpense} />
+          <Route path="/budget-settings" component={SimpleBudgetSettings} />
+          <Route path="/reports" component={SimpleReports} />
+          <Route path="/archive" component={ArchiveViewer} />
+        </>
+      )}
       <Route component={NotFound} />
     </Switch>
   );

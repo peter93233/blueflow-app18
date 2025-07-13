@@ -1,17 +1,42 @@
-import { pgTable, text, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  numeric,
+  timestamp,
+  jsonb,
+  varchar,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
 export const users = pgTable("users", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  username: text("username").unique().notNull(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().notNull(), // Changed to varchar for OAuth compatibility
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const expenses = pgTable("expenses", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(),
@@ -21,7 +46,7 @@ export const expenses = pgTable("expenses", {
 
 export const budgets = pgTable("budgets", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   period: text("period").notNull(), // 'weekly', 'biweekly', 'monthly'
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -30,7 +55,7 @@ export const budgets = pgTable("budgets", {
 
 export const userBalances = pgTable("user_balances", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -65,12 +90,15 @@ export const userBalancesRelations = relations(userBalances, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = z.object({
-  username: z.string(),
-  password: z.string(),
+  id: z.string(),
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  profileImageUrl: z.string().optional(),
 });
 
 export const insertExpenseSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   name: z.string(),
   amount: z.string(),
   category: z.string(),
@@ -78,17 +106,18 @@ export const insertExpenseSchema = z.object({
 });
 
 export const insertBudgetSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   amount: z.string(),
   period: z.string(),
 });
 
 export const insertUserBalanceSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   balance: z.string(),
 });
 
 // Types
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 

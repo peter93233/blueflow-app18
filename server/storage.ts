@@ -1,95 +1,87 @@
-import { 
-  users, 
-  expenses, 
-  budgets, 
+import {
+  users,
+  expenses,
+  budgets,
   userBalances,
-  type User, 
-  type InsertUser,
+  type User,
+  type UpsertUser,
   type Expense,
-  type InsertExpense,
   type Budget,
-  type InsertBudget,
   type UserBalance,
-  type InsertUserBalance
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User methods - Updated for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Expense methods
   createExpense(expense: {
-    userId: number;
+    userId: string;
     name: string;
     amount: string;
     category: string;
     date: Date;
   }): Promise<Expense>;
-  getExpensesByUserId(userId: number): Promise<Expense[]>;
-  getExpensesByUserIdAndDateRange(userId: number, startDate: Date, endDate: Date): Promise<Expense[]>;
+  getExpensesByUserId(userId: string): Promise<Expense[]>;
+  getExpensesByUserIdAndDateRange(userId: string, startDate: Date, endDate: Date): Promise<Expense[]>;
   
   // Budget methods
   createOrUpdateBudget(budget: {
-    userId: number;
+    userId: string;
     amount: string;
     period: string;
   }): Promise<Budget>;
-  getBudgetByUserId(userId: number): Promise<Budget | undefined>;
+  getBudgetByUserId(userId: string): Promise<Budget | undefined>;
   
   // User balance methods
   createOrUpdateUserBalance(balance: {
-    userId: number;
+    userId: string;
     balance: string;
   }): Promise<UserBalance>;
-  getUserBalanceByUserId(userId: number): Promise<UserBalance | undefined>;
+  getUserBalanceByUserId(userId: string): Promise<UserBalance | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations - Updated for Replit Auth
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
 
-  // Expense methods
+  // Expense operations
   async createExpense(expenseData: {
-    userId: number;
+    userId: string;
     name: string;
     amount: string;
     category: string;
     date: Date;
   }): Promise<Expense> {
-    const [newExpense] = await db
+    const [expense] = await db
       .insert(expenses)
-      .values({
-        userId: expenseData.userId,
-        name: expenseData.name,
-        amount: expenseData.amount,
-        category: expenseData.category,
-        date: expenseData.date
-      })
+      .values(expenseData)
       .returning();
-    return newExpense;
+    return expense;
   }
 
-  async getExpensesByUserId(userId: number): Promise<Expense[]> {
+  async getExpensesByUserId(userId: string): Promise<Expense[]> {
     return await db
       .select()
       .from(expenses)
@@ -97,7 +89,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(expenses.date));
   }
 
-  async getExpensesByUserIdAndDateRange(userId: number, startDate: Date, endDate: Date): Promise<Expense[]> {
+  async getExpensesByUserIdAndDateRange(userId: string, startDate: Date, endDate: Date): Promise<Expense[]> {
     return await db
       .select()
       .from(expenses)
@@ -111,81 +103,86 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(expenses.date));
   }
 
-  // Budget methods
+  // Budget operations
   async createOrUpdateBudget(budgetData: {
-    userId: number;
+    userId: string;
     amount: string;
     period: string;
   }): Promise<Budget> {
-    const existingBudget = await this.getBudgetByUserId(budgetData.userId);
-    
+    // First try to find existing budget
+    const [existingBudget] = await db
+      .select()
+      .from(budgets)
+      .where(eq(budgets.userId, budgetData.userId));
+
     if (existingBudget) {
+      // Update existing budget
       const [updatedBudget] = await db
         .update(budgets)
-        .set({ 
-          amount: budgetData.amount, 
+        .set({
+          amount: budgetData.amount,
           period: budgetData.period,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(budgets.userId, budgetData.userId))
         .returning();
       return updatedBudget;
     } else {
+      // Create new budget
       const [newBudget] = await db
         .insert(budgets)
-        .values({
-          userId: budgetData.userId,
-          amount: budgetData.amount,
-          period: budgetData.period
-        })
+        .values(budgetData)
         .returning();
       return newBudget;
     }
   }
 
-  async getBudgetByUserId(userId: number): Promise<Budget | undefined> {
+  async getBudgetByUserId(userId: string): Promise<Budget | undefined> {
     const [budget] = await db
       .select()
       .from(budgets)
       .where(eq(budgets.userId, userId));
-    return budget || undefined;
+    return budget;
   }
 
-  // User balance methods
+  // User balance operations
   async createOrUpdateUserBalance(balanceData: {
-    userId: number;
+    userId: string;
     balance: string;
   }): Promise<UserBalance> {
-    const existingBalance = await this.getUserBalanceByUserId(balanceData.userId);
-    
+    // First try to find existing balance
+    const [existingBalance] = await db
+      .select()
+      .from(userBalances)
+      .where(eq(userBalances.userId, balanceData.userId));
+
     if (existingBalance) {
+      // Update existing balance
       const [updatedBalance] = await db
         .update(userBalances)
-        .set({ 
+        .set({
           balance: balanceData.balance,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(userBalances.userId, balanceData.userId))
         .returning();
       return updatedBalance;
     } else {
+      // Create new balance
       const [newBalance] = await db
         .insert(userBalances)
-        .values({
-          userId: balanceData.userId,
-          balance: balanceData.balance
-        })
+        .values(balanceData)
         .returning();
       return newBalance;
     }
   }
 
-  async getUserBalanceByUserId(userId: number): Promise<UserBalance | undefined> {
+  async getUserBalanceByUserId(userId: string): Promise<UserBalance | undefined> {
     const [balance] = await db
       .select()
       .from(userBalances)
       .where(eq(userBalances.userId, userId));
-    return balance || undefined;
+    return balance;
   }
 }
 
