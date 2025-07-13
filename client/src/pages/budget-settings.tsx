@@ -1,20 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Calendar } from "lucide-react";
+import { ArrowLeft, DollarSign, Calendar, Save, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-
-type BudgetPeriod = 'weekly' | 'biweekly' | 'monthly';
+import { useFinance } from "@/hooks/use-finance";
+import { BudgetPeriod } from "@/lib/finance-store";
 
 export default function BudgetSettings() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { budget, setBudget, progress, saveCurrentMonth } = useFinance();
   
   const [selectedPeriod, setSelectedPeriod] = useState<BudgetPeriod>('weekly');
   const [budgetAmount, setBudgetAmount] = useState("");
+
+  // Load existing budget on component mount
+  useEffect(() => {
+    if (budget) {
+      setSelectedPeriod(budget.period);
+      setBudgetAmount(budget.amount.toString());
+    }
+  }, [budget]);
 
   const periodOptions = [
     { value: 'weekly' as BudgetPeriod, label: 'Weekly', description: 'Set a weekly budget' },
@@ -22,23 +31,38 @@ export default function BudgetSettings() {
     { value: 'monthly' as BudgetPeriod, label: 'Monthly', description: 'Set a monthly budget' }
   ];
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
   const handleSaveBudget = () => {
-    if (!budgetAmount) {
+    if (!budgetAmount || isNaN(parseFloat(budgetAmount))) {
       toast({
-        title: "Missing Amount",
-        description: "Please enter your budget amount",
+        title: "Invalid Amount",
+        description: "Please enter a valid budget amount",
         variant: "destructive"
       });
       return;
     }
 
-    console.log('Saving budget:', { period: selectedPeriod, amount: budgetAmount });
+    const amount = parseFloat(budgetAmount);
+    setBudget(selectedPeriod, amount);
+    
     toast({
       title: "Budget Updated",
-      description: `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} budget of $${budgetAmount} saved successfully`,
+      description: `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} budget of ${formatCurrency(amount)} saved successfully`,
     });
-    
-    setBudgetAmount("");
+  };
+
+  const handleArchiveMonth = () => {
+    const archive = saveCurrentMonth();
+    toast({
+      title: "Month Archived",
+      description: `${archive.month} data saved with ${formatCurrency(archive.totalExpenses)} in expenses`,
+    });
   };
 
   const handleBack = () => {
