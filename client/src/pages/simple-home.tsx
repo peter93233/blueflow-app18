@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
+import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { ArchiveManager } from "@/lib/archive-manager";
@@ -211,7 +212,12 @@ export default function SimpleHome() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center pt-8 pb-6 relative"
         >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+          {/* Custom BlueFlow Logo */}
+          <div className="flex justify-center mb-4">
+            <BlueFlowLogo size={75} responsive={true} />
+          </div>
+          
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
             BlueFlow
           </h1>
           <p className="text-slate-600 text-sm font-medium">Smart Budget Tracker</p>

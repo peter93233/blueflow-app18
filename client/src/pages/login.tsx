@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 
 export function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -83,6 +84,9 @@ export function Login() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <BlueFlowLogo size={65} />
+          </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
             BlueFlow
           </h1>
