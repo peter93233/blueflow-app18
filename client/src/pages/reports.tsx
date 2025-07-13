@@ -27,9 +27,15 @@ export default function Reports() {
   };
 
   // Generate weekly trend data
-  const weeklyData = getWeeklyTrend();
+  const weeklyTrend = getWeeklyTrend();
   const topCategories = getTopCategories(5);
   const budgetHealth = getBudgetHealth();
+  
+  // Convert weekly trend to chart data
+  const weeklyData = [
+    { label: 'Last Week', value: weeklyTrend.lastWeek },
+    { label: 'This Week', value: weeklyTrend.thisWeek }
+  ];
 
   // Chart colors with glassmorphic gradient
   const chartColors = [

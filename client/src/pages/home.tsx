@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { useNotifications } from "@/hooks/use-notifications";
-import { AddExpenseModal } from "@/components/ui/add-expense-modal";
+import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { VibrantDonutChart, CategoryLegend } from "@/components/ui/vibrant-donut-chart";
 import { BudgetPeriod } from "@/lib/finance-store";
 
@@ -336,7 +336,7 @@ export default function Home() {
         <FloatingAIButton />
 
         {/* Add Expense Modal */}
-        <AddExpenseModal 
+        <SimpleExpenseModal 
           isOpen={showAddExpenseModal} 
           onClose={() => setShowAddExpenseModal(false)} 
         />
