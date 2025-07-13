@@ -8,6 +8,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import SimpleHome from "@/pages/simple-home";
 import SimpleBudgetSettings from "@/pages/simple-budget-settings";
 import SimpleReports from "@/pages/simple-reports";
+import ArchiveViewer from "@/pages/archive-viewer";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/add-expense" component={SimpleHome} />
       <Route path="/budget-settings" component={SimpleBudgetSettings} />
       <Route path="/reports" component={SimpleReports} />
+      <Route path="/archive" component={ArchiveViewer} />
       <Route component={NotFound} />
     </Switch>
   );

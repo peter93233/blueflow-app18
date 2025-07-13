@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap } from "lucide-react";
+import { DollarSign, Plus, Edit3, PieChart, BarChart3, Settings, Target, Zap, Archive } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { ExpenseDisplay } from "@/components/ui/expense-display";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
+import { ArchiveManager } from "@/lib/archive-manager";
 
 interface Expense {
   id: string;
@@ -83,6 +84,18 @@ export default function SimpleHome() {
     if (percentage <= 60) return 'from-green-400 to-emerald-500';
     if (percentage <= 85) return 'from-yellow-400 to-orange-500';
     return 'from-red-400 to-red-500';
+  };
+
+  const handleSaveMonth = () => {
+    const savedMonth = ArchiveManager.saveCurrentMonth();
+    if (savedMonth) {
+      alert(`Month saved! ${savedMonth.monthName} has been archived with ${savedMonth.expenseCount} transactions totaling ${formatCurrency(savedMonth.totalExpenses)}`);
+      
+      // Refresh the page to show cleared expenses
+      window.location.reload();
+    } else {
+      alert('No expenses to archive. Add some expenses first!');
+    }
   };
 
   return (
@@ -212,20 +225,48 @@ export default function SimpleHome() {
             </button>
           </Link>
 
-          <Link href="/budget-settings">
+          <Link href="/archive">
             <button className="w-full bg-white/20 backdrop-blur-xl rounded-2xl p-4 border border-white/30 hover:bg-white/30 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-xl">
-                  <Zap className="w-5 h-5 text-white" />
+                  <Archive className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-slate-800">Goals</p>
-                  <p className="text-sm text-slate-600">Set Budget</p>
+                  <p className="font-medium text-slate-800">Archive</p>
+                  <p className="text-sm text-slate-600">Past Months</p>
                 </div>
               </div>
             </button>
           </Link>
         </motion.div>
+
+        {/* Save Month Button */}
+        {expenses.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Archive className="w-5 h-5 text-purple-500" />
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Monthly Archive</h3>
+                <p className="text-sm text-slate-600">Save current month and start fresh</p>
+              </div>
+            </div>
+            
+            <motion.button
+              onClick={handleSaveMonth}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-purple-500/80 to-pink-500/80 backdrop-blur-xl border border-white/30 hover:from-purple-600/80 hover:to-pink-600/80 text-white rounded-2xl py-3 font-semibold transition-all duration-200 shadow-xl flex items-center justify-center gap-2"
+            >
+              <Archive className="w-5 h-5" />
+              Save Current Month
+            </motion.button>
+          </motion.div>
+        )}
 
         {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-white/20 backdrop-blur-xl border-t border-white/30">
