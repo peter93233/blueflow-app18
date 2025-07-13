@@ -313,19 +313,19 @@ export default function SimpleHome() {
               </button>
             </Link>
             <Link href="/add-expense">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
                 <Plus className="w-5 h-5" />
                 <span className="text-xs font-medium">Add</span>
               </button>
             </Link>
             <Link href="/reports">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
                 <BarChart3 className="w-5 h-5" />
                 <span className="text-xs font-medium">Reports</span>
               </button>
             </Link>
             <Link href="/budget-settings">
-              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
                 <Settings className="w-5 h-5" />
                 <span className="text-xs font-medium">Settings</span>
               </button>

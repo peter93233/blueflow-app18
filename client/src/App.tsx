@@ -9,13 +9,14 @@ import SimpleHome from "@/pages/simple-home";
 import SimpleBudgetSettings from "@/pages/simple-budget-settings";
 import SimpleReports from "@/pages/simple-reports";
 import ArchiveViewer from "@/pages/archive-viewer";
+import AddExpense from "@/pages/add-expense";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={SimpleHome} />
-      <Route path="/add-expense" component={SimpleHome} />
+      <Route path="/add-expense" component={AddExpense} />
       <Route path="/budget-settings" component={SimpleBudgetSettings} />
       <Route path="/reports" component={SimpleReports} />
       <Route path="/archive" component={ArchiveViewer} />

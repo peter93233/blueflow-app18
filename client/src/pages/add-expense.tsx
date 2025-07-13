@@ -1,255 +1,264 @@
 import { useState } from "react";
-import { ArrowLeft, DollarSign, Calendar, Tag, Plus, Receipt } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { useFinance } from "@/hooks/use-finance";
-import { useNotifications } from "@/hooks/use-notifications";
-import { EXPENSE_CATEGORIES } from "@/lib/finance-store";
+import { ArrowLeft, Plus, Calendar, DollarSign, Tag, Settings, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { AIAssistant } from "@/lib/ai-assistant";
 
 export default function AddExpense() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const { addExpenseWithBudgetUpdate, progress, budget, expenses, categoryTotals } = useFinance();
-  const { triggerBudgetCheck, showToast } = useNotifications();
-
   const [expenseName, setExpenseName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Food");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formatCurrency = (value: string) => {
-    if (!value) return "";
+  const categories = [
+    'Food', 'Transport', 'Entertainment', 'Shopping', 'Bills', 'Health', 'Other'
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!expenseName.trim() || !expenseAmount || parseFloat(expenseAmount) <= 0) {
+      alert('Please fill in all fields with valid values');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const newExpense = {
+        id: Date.now().toString(),
+        name: expenseName.trim(),
+        amount: parseFloat(expenseAmount),
+        category: selectedCategory,
+        date: selectedDate,
+        createdAt: new Date().toISOString()
+      };
+
+      // Get existing expenses and add new one
+      const existingExpenses = JSON.parse(localStorage.getItem('blueflow_expenses') || '[]');
+      existingExpenses.push(newExpense);
+      localStorage.setItem('blueflow_expenses', JSON.stringify(existingExpenses));
+
+      // Check if this triggers a budget alert
+      const budgetAmount = parseFloat(localStorage.getItem('blueflow_budget_amount') || '500');
+      const totalSpent = existingExpenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+      const budgetPercentage = (totalSpent / budgetAmount) * 100;
+
+      if (budgetPercentage >= 80) {
+        AIAssistant.addNotification({
+          type: 'budget_alert',
+          title: 'Budget Alert',
+          message: `You've used ${budgetPercentage.toFixed(1)}% of your budget. Consider reducing spending.`,
+          read: false,
+          icon: '⚠️'
+        });
+      }
+
+      // Add success notification
+      AIAssistant.addNotification({
+        type: 'balance_update',
+        title: 'Expense Added',
+        message: `${newExpense.name} ($${newExpense.amount}) added to ${newExpense.category}`,
+        read: false,
+        icon: '✅'
+      });
+
+      // Reset form
+      setExpenseName("");
+      setExpenseAmount("");
+      setSelectedCategory("Food");
+      setSelectedDate(new Date().toISOString().split('T')[0]);
+
+      // Show success message
+      alert('Expense added successfully!');
+
+      // Dispatch event to update other components
+      window.dispatchEvent(new CustomEvent('expenseAdded'));
+
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      alert('Error adding expense. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(parseFloat(value));
-  };
-
-  const handleAddExpense = () => {
-    if (!expenseName.trim()) {
-      toast({
-        title: "Missing Name",
-        description: "Please enter an expense name",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!amount || isNaN(parseFloat(amount))) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!selectedCategory) {
-      toast({
-        title: "Missing Category",
-        description: "Please select a category",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const expenseAmount = parseFloat(amount);
-    const expenseDate = new Date(selectedDate);
-
-    // Add the expense
-    const newExpense = addExpenseWithBudgetUpdate(
-      expenseName.trim(),
-      expenseAmount,
-      selectedCategory,
-      expenseDate
-    );
-
-    // Success notification
-    showToast({
-      type: 'smart_tip',
-      title: "Expense Added",
-      message: `${formatCurrency(amount)} expense "${expenseName}" added successfully`,
-      priority: 'low',
-      icon: '✅'
-    });
-
-    // Check budget status and trigger notifications if needed
-    setTimeout(() => {
-      triggerBudgetCheck(expenses, budget, categoryTotals);
-    }, 500);
-
-    // Navigate back to home
-    setLocation("/");
+    }).format(amount);
   };
 
   return (
-    <div className="min-h-screen pb-32">
-      <div className="float-layout">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-cyan-100 p-4">
+      <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between pt-12 pb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 pt-4"
+        >
           <Link href="/">
-            <button className="glass-button-secondary p-3 rounded-xl hover-lift">
-              <ArrowLeft className="w-5 h-5" />
+            <button className="p-3 bg-white/20 backdrop-blur-xl rounded-full border border-white/30 hover:bg-white/30 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-slate-700" />
             </button>
           </Link>
-          <div className="text-center">
-            <h1 className="text-xl font-bold gradient-text-primary">Add Expense</h1>
-            <p className="text-sm text-gray-500 mt-1">Track your spending</p>
-          </div>
-          <div className="w-12 h-12"></div> {/* Spacer */}
-        </div>
+          <h1 className="text-2xl font-bold text-slate-800">Add Expense</h1>
+        </motion.div>
 
-        {/* Amount Preview Card */}
-        {amount && (
-          <div className="float-card text-center hover-lift glow-on-hover mb-4">
-            <div className="p-6">
-              <Receipt className="w-8 h-8 text-purple-500 mx-auto mb-3" />
-              <div className="text-3xl font-bold gradient-text-accent mb-2">
-                {formatCurrency(amount)}
-              </div>
-              <p className="text-sm text-gray-600">
-                {expenseName || "New expense"} • {selectedCategory || "No category"}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Form Card */}
-        <div className="float-card hover-lift glow-on-hover">
-          <div className="space-y-6">
+        {/* Add Expense Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Expense Name */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Tag className="w-4 h-4 text-purple-500" />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <Tag className="w-4 h-4" />
                 Expense Name
               </label>
               <input
                 type="text"
                 value={expenseName}
                 onChange={(e) => setExpenseName(e.target.value)}
-                className="glass-input w-full"
-                placeholder="Coffee, lunch, groceries..."
+                placeholder="Enter expense name"
+                className="w-full px-4 py-3 bg-white/30 border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-slate-500 text-slate-800"
                 required
               />
             </div>
 
             {/* Amount */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-500" />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <DollarSign className="w-4 h-4" />
                 Amount
               </label>
               <input
                 type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="glass-input w-full text-lg font-semibold"
+                value={expenseAmount}
+                onChange={(e) => setExpenseAmount(e.target.value)}
                 placeholder="0.00"
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-3 bg-white/30 border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-slate-500 text-slate-800"
                 required
               />
             </div>
 
-            {/* Quick Amount Buttons */}
-            <div className="grid grid-cols-4 gap-3">
-              {[5, 10, 25, 50].map((quickAmount) => (
-                <button
-                  type="button"
-                  key={quickAmount}
-                  onClick={() => setAmount(quickAmount.toString())}
-                  className="p-3 text-sm font-semibold text-gray-700 bg-white/20 rounded-lg hover:bg-white/40 transition-all border border-white/30"
-                >
-                  ${quickAmount}
-                </button>
-              ))}
-            </div>
-
             {/* Category */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Tag className="w-4 h-4 text-blue-500" />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <Tag className="w-4 h-4" />
                 Category
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <button
-                    type="button"
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`p-3 rounded-lg text-sm font-medium transition-all border ${
-                      selectedCategory === cat
-                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-700'
-                        : 'bg-white/20 border-white/30 text-gray-700 hover:bg-white/40'
-                    }`}
-                  >
-                    {cat}
-                  </button>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-white/30 border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-slate-800"
+              >
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Date */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-orange-500" />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <Calendar className="w-4 h-4" />
                 Date
               </label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="glass-input w-full"
+                className="w-full px-4 py-3 bg-white/30 border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-slate-800"
                 required
               />
             </div>
 
             {/* Submit Button */}
-            <button
-              onClick={handleAddExpense}
-              className="glass-button-primary w-full py-4 text-lg font-semibold hover-lift"
+            <motion.button
+              type="submit"
+              disabled={isSubmitting}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-3 font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="w-5 h-5 mr-2" />
-              Add Expense
-            </button>
-          </div>
-        </div>
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  Add Expense
+                </>
+              )}
+            </motion.button>
+          </form>
+        </motion.div>
 
-        {/* Tips Card */}
-        <div className="float-card hover-lift">
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              💡 Quick Tips
-            </h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>• Use quick amount buttons for common purchases</p>
-              <p>• Choose the right category for better insights</p>
-              <p>• Add expenses immediately to avoid forgetting</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Budget Status Preview */}
-        {budget && (
-          <div className="float-card hover-lift">
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-800 mb-3">Budget Status</h3>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">Remaining</p>
-                  <p className="text-lg font-bold gradient-text-accent">
-                    {formatCurrency(progress.remaining.toString())}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Spent</p>
-                  <p className="text-lg font-bold text-orange-600">
-                    {Math.round(progress.percentage)}%
-                  </p>
-                </div>
+        {/* Quick Preview */}
+        {expenseName && expenseAmount && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/20 backdrop-blur-xl rounded-3xl p-4 border border-white/30"
+          >
+            <h3 className="text-sm font-medium text-slate-700 mb-2">Preview</h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-slate-800">{expenseName}</p>
+                <p className="text-sm text-slate-600">{selectedCategory} • {new Date(selectedDate).toLocaleDateString()}</p>
               </div>
+              <p className="text-lg font-bold text-purple-600">
+                {formatCurrency(parseFloat(expenseAmount) || 0)}
+              </p>
             </div>
-          </div>
+          </motion.div>
         )}
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/20 backdrop-blur-xl border-t border-white/30">
+          <div className="max-w-md mx-auto flex justify-around py-3">
+            <Link href="/">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
+                <DollarSign className="w-5 h-5" />
+                <span className="text-xs font-medium">Home</span>
+              </button>
+            </Link>
+            <Link href="/add-expense">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-purple-600">
+                <Plus className="w-5 h-5" />
+                <span className="text-xs font-medium">Add</span>
+              </button>
+            </Link>
+            <Link href="/reports">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-xs font-medium">Reports</span>
+              </button>
+            </Link>
+            <Link href="/budget-settings">
+              <button className="flex flex-col items-center gap-1 px-4 py-2 text-slate-600 hover:text-purple-600 transition-colors">
+                <Settings className="w-5 h-5" />
+                <span className="text-xs font-medium">Settings</span>
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Bottom Navigation Spacer */}
+        <div className="h-20"></div>
       </div>
     </div>
   );
