@@ -1,0 +1,50 @@
+{
+  "name": "BlueFlow - Personal Finance Tracker",
+  "short_name": "BlueFlow",
+  "description": "A modern personal finance management application with budget tracking and AI insights",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "productivity", "business"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "BlueFlow Dashboard"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "BlueFlow Mobile View"
+    }
+  ],
+  "features": [
+    "expense-tracking",
+    "budget-management",
+    "ai-insights",
+    "data-visualization"
+  ],
+  "prefer_related_applications": false
+}
