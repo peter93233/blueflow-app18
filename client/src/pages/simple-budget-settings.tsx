@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Target, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, Target, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useAuth } from '@/lib/auth';
+import { DataResetManager } from '@/lib/data-reset';
+import { ResetAppModal } from '@/components/ui/reset-app-modal';
 
 type BudgetPeriod = 'weekly' | 'biweekly' | 'monthly';
 
 export default function SimpleBudgetSettings() {
+  const { user } = useAuth();
   const [budgetAmount, setBudgetAmount] = useState(500);
   const [budgetPeriod, setBudgetPeriod] = useState<BudgetPeriod>('weekly');
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Load budget settings from localStorage on component mount
   // This ensures the selected options persist even after refresh
@@ -50,6 +55,41 @@ export default function SimpleBudgetSettings() {
     
     // Return to dashboard after saving - can be expanded to use proper navigation
     window.location.href = '/';
+  };
+
+  const handleResetApp = async () => {
+    try {
+      // Update user onboarding status to trigger onboarding flow
+      const updateUserOnboardingStatus = async (isCompleted: boolean) => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const response = await fetch('/api/auth/complete-onboarding', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ isCompleted })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update onboarding status');
+          }
+        }
+      };
+
+      // Perform complete app reset
+      await DataResetManager.completeAppReset(updateUserOnboardingStatus);
+      
+      // Close modal
+      setShowResetModal(false);
+      
+      // Navigate to home to show fresh state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Reset failed:', error);
+      alert('Reset failed. Please try again.');
+    }
   };
 
   return (
@@ -171,6 +211,34 @@ export default function SimpleBudgetSettings() {
             </div>
           </div>
         </motion.div>
+
+        {/* Reset App Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white/20 backdrop-blur-xl rounded-2xl p-6 border border-white/30 shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-slate-800 mb-3">Reset App</h3>
+          <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+            Clear all your financial data and start fresh. This will delete all expenses, income, budgets, and settings.
+          </p>
+          
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="font-medium">Reset App</span>
+          </button>
+        </motion.div>
+
+        {/* Reset App Modal */}
+        <ResetAppModal
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          onConfirm={handleResetApp}
+        />
       </div>
     </div>
   );

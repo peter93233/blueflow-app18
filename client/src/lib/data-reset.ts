@@ -6,7 +6,7 @@
 export class DataResetManager {
   /**
    * Reset all app data to initial empty state
-   * This clears all stored financial data but preserves user settings
+   * This clears all stored financial data but preserves user authentication
    */
   static resetToInitialState(): void {
     // Clear financial data
@@ -35,7 +35,30 @@ export class DataResetManager {
     localStorage.removeItem('blueflow-demo-budget');
     localStorage.removeItem('blueflow-demo-balance');
     
+    // Clear session storage except authentication
+    sessionStorage.removeItem('blueflow-splash-shown');
+    
     console.log('BlueFlow data reset to initial empty state');
+  }
+
+  /**
+   * Complete app reset including user onboarding status
+   * This triggers the onboarding flow for existing users
+   */
+  static async completeAppReset(updateUserOnboardingStatus?: (isCompleted: boolean) => Promise<void>): Promise<void> {
+    // First reset all local data
+    this.resetToInitialState();
+    
+    // Set user as new user to trigger onboarding
+    if (updateUserOnboardingStatus) {
+      try {
+        await updateUserOnboardingStatus(false); // Set as new user
+      } catch (error) {
+        console.error('Failed to update user onboarding status:', error);
+      }
+    }
+    
+    console.log('Complete app reset performed');
   }
 
   /**
