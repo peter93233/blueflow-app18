@@ -1,4 +1,4 @@
-package com.peter93233.blueflow;
+package com.example.app;
 
 import com.getcapacitor.BridgeActivity;
 
