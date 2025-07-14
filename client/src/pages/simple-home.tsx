@@ -7,6 +7,7 @@ import { AddIncomeModal } from "@/components/ui/add-income-modal";
 import { OnboardingTooltip } from "@/components/ui/onboarding-tooltip";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { OnboardingDataManager } from "@/lib/onboarding-data";
+import { DataResetManager } from "@/lib/data-reset";
 import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { BalanceCard } from "@/components/dashboard/balance-card";
@@ -32,14 +33,14 @@ interface Expense {
 
 export default function SimpleHome() {
   const { user, logout } = useAuth();
-  const [balance, setBalance] = useState(3200);
+  const [balance, setBalance] = useState(0);
   const [showBalanceEdit, setShowBalanceEdit] = useState(false);
   const [newBalance, setNewBalance] = useState("");
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
-  const [remainingBudget, setRemainingBudget] = useState(500);
+  const [remainingBudget, setRemainingBudget] = useState(0);
 
   // Onboarding
   const {
@@ -55,38 +56,61 @@ export default function SimpleHome() {
     updateTooltipPosition
   } = useOnboarding();
   
-  // Mock data for the new design
+  // Dynamic data for the design - will be populated from user's actual data
   const topWidgets = [
-    { label: "Main Balance", amount: 442.05, color: "from-blue-400 to-blue-600" },
-    { label: "Weekly Expenses", amount: 118.86, color: "from-purple-400 to-purple-600" },
-    { label: "Income from Salary", amount: 520.00, color: "from-green-400 to-green-600" }
+    { label: "Main Balance", amount: balance, color: "from-blue-400 to-blue-600" },
+    { label: "Weekly Expenses", amount: totalSpent, color: "from-purple-400 to-purple-600" },
+    { label: "Income from Salary", amount: 0, color: "from-green-400 to-green-600" }
   ];
   
-  const weeklySpendingCharts = [
-    { category: "Food", amount: 89.50, color: ["#FF6B9D", "#C44569"], percentage: 35 },
-    { category: "Transport", amount: 45.20, color: ["#4ECDC4", "#44A08D"], percentage: 20 },
-    { category: "Entertainment", amount: 67.30, color: ["#FFD93D", "#F39C12"], percentage: 25 },
-    { category: "Shopping", amount: 123.80, color: ["#6C7B7F", "#3B82F6"], percentage: 45 }
-  ];
-  
-  const incomeData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{
-      label: 'Income',
-      data: [2800, 3200, 2900, 3400, 3100, 3600],
-      borderColor: 'rgb(147, 51, 234)',
-      backgroundColor: 'rgba(147, 51, 234, 0.1)',
-      fill: true,
-      tension: 0.4
-    }]
+  // Calculate spending by category from actual expenses
+  const getSpendingByCategory = () => {
+    const categoryTotals: Record<string, number> = {};
+    expenses.forEach(expense => {
+      categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
+    });
+    
+    const colors = [
+      ["#FF6B9D", "#C44569"],
+      ["#4ECDC4", "#44A08D"], 
+      ["#FFD93D", "#F39C12"],
+      ["#6C7B7F", "#3B82F6"]
+    ];
+    
+    return Object.entries(categoryTotals).map(([category, amount], index) => ({
+      category,
+      amount,
+      color: colors[index % colors.length],
+      percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0
+    }));
   };
+  
+  const weeklySpendingCharts = getSpendingByCategory();
+  
+  // Dynamic income data - will show actual user income data
+  const getIncomeData = () => {
+    // For now, return empty chart until income tracking is implemented
+    return {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [{
+        label: 'Income',
+        data: [0, 0, 0, 0, 0, 0],
+        borderColor: 'rgb(147, 51, 234)',
+        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    };
+  };
+  
+  const incomeData = getIncomeData();
 
   // Load expenses and budget settings from localStorage
   useEffect(() => {
     const loadExpenses = () => {
       // Check if we should show demo data or real data
       if (OnboardingDataManager.isDemoDataActive()) {
-        // Load demo data for display
+        // Load demo data for display during onboarding
         const demoExpenses = OnboardingDataManager.getDemoExpenses();
         const demoBalance = OnboardingDataManager.getDemoBalance();
         
@@ -105,8 +129,16 @@ export default function SimpleHome() {
           setRemainingBudget(1000 - demoExpenses.reduce((sum, expense) => sum + expense.amount, 0));
         }
       } else {
+        // For non-onboarding users, check if they have personal data
+        if (!DataResetManager.hasPersonalData() && !isNewUser) {
+          // Initialize fresh state for users without personal data
+          DataResetManager.initializeFreshState();
+        }
+        
         // Load real data for existing users
         const storedExpenses = localStorage.getItem('blueflow_expenses');
+        const storedBalance = localStorage.getItem('blueflow_balance');
+        
         if (storedExpenses) {
           const parsedExpenses = JSON.parse(storedExpenses);
           setExpenses(parsedExpenses);
@@ -116,15 +148,19 @@ export default function SimpleHome() {
           setTotalSpent(total);
           
           // Calculate remaining budget
-          const budget = parseFloat(localStorage.getItem('blueflow_budget_amount') || '500');
+          const budget = parseFloat(localStorage.getItem('blueflow_budget_amount') || '0');
           setRemainingBudget(budget - total);
+        }
+        
+        if (storedBalance) {
+          setBalance(parseFloat(storedBalance));
         }
       }
     };
 
     loadExpenses();
     
-    // Initialize demo notifications
+    // Initialize demo notifications only during onboarding
     initializeDemoNotifications();
     
     // Listen for expense additions
@@ -134,7 +170,7 @@ export default function SimpleHome() {
     
     window.addEventListener('expenseAdded', handleExpenseAdded);
     return () => window.removeEventListener('expenseAdded', handleExpenseAdded);
-  }, []);
+  }, [isNewUser]);
 
   // Start onboarding for new users
   useEffect(() => {
@@ -156,24 +192,18 @@ export default function SimpleHome() {
   }, [currentStep, isOnboardingActive, currentStepData, updateTooltipPosition]);
 
   const initializeDemoNotifications = () => {
-    const existingNotifications = AIAssistant.getRecentNotifications();
-    if (existingNotifications.length === 0) {
-      // Add some demo notifications
-      AIAssistant.addNotification({
-        type: 'balance_update',
-        title: 'Welcome to BlueFlow',
-        message: 'Your AI assistant is ready to help with financial insights!',
-        read: false,
-        icon: '✅'
-      });
-      
-      AIAssistant.addNotification({
-        type: 'monthly_reminder',
-        title: 'Monthly Archive Tip',
-        message: 'Remember to save your current month when you want to start fresh!',
-        read: false,
-        icon: '💡'
-      });
+    // Only add welcome notification for new users during onboarding
+    if (isNewUser && OnboardingDataManager.isDemoDataActive()) {
+      const existingNotifications = AIAssistant.getRecentNotifications();
+      if (existingNotifications.length === 0) {
+        AIAssistant.addNotification({
+          type: 'balance_update',
+          title: 'Welcome to BlueFlow',
+          message: 'Your AI assistant is ready to help with financial insights!',
+          read: false,
+          icon: '✅'
+        });
+      }
     }
   };
 
@@ -326,24 +356,31 @@ export default function SimpleHome() {
           className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-800">Weekly Spending</h3>
+            <h3 className="text-lg font-semibold text-slate-800">Spending by Category</h3>
             <div className="flex gap-2">
-              <span className="text-xs text-purple-500">$2,842.50</span>
-              <span className="text-xs text-blue-500">$4,160.00</span>
+              <span className="text-xs text-slate-400">
+                {totalSpent > 0 ? `$${totalSpent.toFixed(2)} total` : 'No expenses yet'}
+              </span>
             </div>
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {weeklySpendingCharts.map((chart, index) => (
-              <SpendingChart
-                key={index}
-                category={chart.category}
-                amount={chart.amount.toString()}
-                percentage={chart.percentage}
-                color={chart.color}
-                index={index}
-              />
-            ))}
+            {weeklySpendingCharts.length > 0 ? (
+              weeklySpendingCharts.map((chart, index) => (
+                <SpendingChart
+                  key={index}
+                  category={chart.category}
+                  amount={chart.amount.toString()}
+                  percentage={chart.percentage}
+                  color={chart.color}
+                  index={index}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-slate-400">
+                <p className="text-sm">Add expenses to see category breakdown</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -357,8 +394,7 @@ export default function SimpleHome() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-800">Income Breakdown</h3>
             <div className="flex gap-2">
-              <span className="text-xs text-purple-500">$2,911.43</span>
-              <span className="text-xs text-orange-500">$3,184.00</span>
+              <span className="text-xs text-slate-400">No income data yet</span>
             </div>
           </div>
           
@@ -385,11 +421,8 @@ export default function SimpleHome() {
             />
           </motion.div>
           
-          <div className="flex justify-between text-xs text-slate-500">
-            <span>$0-$1,000</span>
-            <span>$1,000-$2,000</span>
-            <span>$2,000-$3,000</span>
-            <span>$3,000-$4,000</span>
+          <div className="flex justify-center text-xs text-slate-400">
+            <span>Start tracking income to see breakdown</span>
           </div>
         </motion.div>
 
@@ -403,28 +436,28 @@ export default function SimpleHome() {
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Smart Budget Track</h3>
           
           <BudgetProgress
-            currentAmount="610.00"
-            totalBudget="800.00"
-            percentage={75}
+            currentAmount={totalSpent.toFixed(2)}
+            totalBudget={Math.max(remainingBudget + totalSpent, 100).toFixed(2)}
+            percentage={totalSpent > 0 && (remainingBudget + totalSpent) > 0 ? Math.round((totalSpent / (remainingBudget + totalSpent)) * 100) : 0}
             onAddExpense={() => setShowAddExpenseModal(true)}
           />
             
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-lg p-3">
-                <p className="text-green-700 font-medium">$3,535.00 SAVED</p>
+                <p className="text-green-700 font-medium">${remainingBudget.toFixed(2)} LEFT</p>
                 <p className="text-green-600 text-xs">Monthly</p>
               </div>
               <div className="bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg p-3">
-                <p className="text-blue-700 font-medium">$2,547.00 SAVED</p>
-                <p className="text-blue-600 text-xs">Weekly</p>
+                <p className="text-blue-700 font-medium">${totalSpent.toFixed(2)} SPENT</p>
+                <p className="text-blue-600 text-xs">This Period</p>
               </div>
               <div className="bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg p-3">
-                <p className="text-purple-700 font-medium">$4,456.00 SAVED</p>
-                <p className="text-purple-600 text-xs">Daily</p>
+                <p className="text-purple-700 font-medium">{expenses.length} ITEMS</p>
+                <p className="text-purple-600 text-xs">Transactions</p>
               </div>
               <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-lg p-3">
-                <p className="text-orange-700 font-medium">$2,365.00 SAVED</p>
-                <p className="text-orange-600 text-xs">Hourly</p>
+                <p className="text-orange-700 font-medium">${balance.toFixed(2)}</p>
+                <p className="text-orange-600 text-xs">Balance</p>
               </div>
             </div>
         </motion.div>

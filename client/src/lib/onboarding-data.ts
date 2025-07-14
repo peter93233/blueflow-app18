@@ -101,19 +101,21 @@ export class OnboardingDataManager {
     localStorage.removeItem(this.DEMO_BUDGET_KEY);
     localStorage.removeItem(this.DEMO_BALANCE_KEY);
 
-    // Remove demo items from main storage
-    const expenses = JSON.parse(localStorage.getItem('blueflow-expenses') || '[]');
-    const incomes = JSON.parse(localStorage.getItem('blueflow-incomes') || '[]');
+    // Remove demo items from main storage (using correct keys)
+    const expenses = JSON.parse(localStorage.getItem('blueflow_expenses') || '[]');
+    const incomes = JSON.parse(localStorage.getItem('blueflow_incomes') || '[]');
 
     const filteredExpenses = expenses.filter((expense: any) => !expense.id.startsWith('demo-'));
     const filteredIncomes = incomes.filter((income: any) => !income.id.startsWith('demo-'));
 
-    localStorage.setItem('blueflow-expenses', JSON.stringify(filteredExpenses));
-    localStorage.setItem('blueflow-incomes', JSON.stringify(filteredIncomes));
+    // Reset to completely empty state
+    localStorage.setItem('blueflow_expenses', JSON.stringify([]));
+    localStorage.setItem('blueflow_incomes', JSON.stringify([]));
+    localStorage.setItem('blueflow_budget_amount', '0');
+    localStorage.setItem('blueflow_balance', '0');
 
-    // Reset budget and balance to defaults
-    localStorage.setItem('blueflow-budget', JSON.stringify({ period: 'monthly', amount: 1000 }));
-    localStorage.setItem('blueflow-balance', '0');
+    // Clear any AI notifications from demo
+    localStorage.removeItem('blueflow_ai_notifications');
   }
 
   /**

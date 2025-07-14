@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 
 **Completion Date**: January 13, 2025
 **Final Export Date**: January 13, 2025
+**Data Reset Completion**: January 14, 2025
 
 **Migration-Ready Features**:
 - Modular component architecture with clean separation
@@ -27,6 +28,8 @@ Preferred communication style: Simple, everyday language.
 - `client/src/components/dashboard/` - Core dashboard components
 - `client/src/components/ui/blueflow-logo.tsx` - Brand logo
 - `client/src/lib/notification-service.ts` - AI notification system
+- `client/src/lib/data-reset.ts` - Data management and reset utilities
+- `client/src/lib/onboarding-data.ts` - Smart onboarding system
 - `client/src/styles/globals.css` - Float Flow compatible styles
 - `DEPLOYMENT.md` - Complete migration guide
 
