@@ -7,6 +7,7 @@ interface User {
   name?: string;
   firstName?: string;
   lastName?: string;
+  isNewUser?: number; // 1 = new user, 0 = onboarded
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUserOnboardingStatus?: (isCompleted: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateUserOnboardingStatus = async (isCompleted: boolean) => {
+    try {
+      const response = await apiRequest("POST", "/api/auth/complete-onboarding", { 
+        isCompleted 
+      });
+      
+      if (response.ok) {
+        // Update user state
+        setUser(prev => prev ? { ...prev, isNewUser: isCompleted ? 0 : 1 } : null);
+      }
+    } catch (error) {
+      console.error("Failed to update onboarding status:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -85,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateUserOnboardingStatus,
       }}
     >
       {children}

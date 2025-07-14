@@ -26,6 +26,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserOnboardingStatus(userId: string, isCompleted: boolean): Promise<User>;
   
   // Expense methods
   createExpense(expense: {
@@ -136,6 +137,18 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserOnboardingStatus(userId: string, isCompleted: boolean): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isNewUser: isCompleted ? 0 : 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }

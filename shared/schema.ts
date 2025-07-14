@@ -32,6 +32,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"), // For OAuth
   lastName: varchar("last_name"), // For OAuth
   profileImageUrl: varchar("profile_image_url"), // For OAuth
+  isNewUser: integer("is_new_user").notNull().default(1), // 1 = new user, 0 = onboarded
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

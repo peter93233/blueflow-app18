@@ -146,6 +146,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete onboarding
+  app.post('/api/auth/complete-onboarding', async (req: any, res) => {
+    try {
+      const { isCompleted } = req.body;
+      let userId: string | null = null;
+      
+      // Try OAuth first
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      // Try JWT token
+      if (!userId) {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+          try {
+            const decoded = jwt.verify(token, process.env.SESSION_SECRET!) as any;
+            userId = decoded.id;
+          } catch (error) {
+            return res.status(401).json({ message: "Unauthorized" });
+          }
+        }
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const updatedUser = await storage.updateUserOnboardingStatus(userId, isCompleted);
+      
+      res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        isNewUser: updatedUser.isNewUser,
+      });
+    } catch (error) {
+      console.error('Complete onboarding error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // API Routes
   
   // Expense routes

@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
 import { AddIncomeModal } from "@/components/ui/add-income-modal";
+import { OnboardingTooltip } from "@/components/ui/onboarding-tooltip";
+import { useOnboarding } from "@/hooks/use-onboarding";
+import { OnboardingDataManager } from "@/lib/onboarding-data";
 import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { BalanceCard } from "@/components/dashboard/balance-card";
@@ -37,6 +40,20 @@ export default function SimpleHome() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(500);
+
+  // Onboarding
+  const {
+    isNewUser,
+    isActive: isOnboardingActive,
+    currentStep,
+    totalSteps,
+    currentStepData,
+    tooltipPosition,
+    startOnboarding,
+    nextStep,
+    skipOnboarding,
+    updateTooltipPosition
+  } = useOnboarding();
   
   // Mock data for the new design
   const topWidgets = [
@@ -67,18 +84,41 @@ export default function SimpleHome() {
   // Load expenses and budget settings from localStorage
   useEffect(() => {
     const loadExpenses = () => {
-      const storedExpenses = localStorage.getItem('blueflow_expenses');
-      if (storedExpenses) {
-        const parsedExpenses = JSON.parse(storedExpenses);
-        setExpenses(parsedExpenses);
+      // Check if we should show demo data or real data
+      if (OnboardingDataManager.isDemoDataActive()) {
+        // Load demo data for display
+        const demoExpenses = OnboardingDataManager.getDemoExpenses();
+        const demoBalance = OnboardingDataManager.getDemoBalance();
         
-        // Calculate total spent
-        const total = parsedExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
-        setTotalSpent(total);
-        
-        // Calculate remaining budget
-        const budget = parseFloat(localStorage.getItem('blueflow_budget_amount') || '500');
-        setRemainingBudget(budget - total);
+        if (demoExpenses.length > 0) {
+          setExpenses(demoExpenses.map(exp => ({
+            id: exp.id,
+            name: exp.name,
+            amount: exp.amount,
+            category: exp.category,
+            date: exp.date instanceof Date ? exp.date.toISOString().split('T')[0] : exp.date,
+            createdAt: exp.createdAt instanceof Date ? exp.createdAt.toISOString() : exp.createdAt
+          })));
+          
+          setBalance(demoBalance);
+          setTotalSpent(demoExpenses.reduce((sum, expense) => sum + expense.amount, 0));
+          setRemainingBudget(1000 - demoExpenses.reduce((sum, expense) => sum + expense.amount, 0));
+        }
+      } else {
+        // Load real data for existing users
+        const storedExpenses = localStorage.getItem('blueflow_expenses');
+        if (storedExpenses) {
+          const parsedExpenses = JSON.parse(storedExpenses);
+          setExpenses(parsedExpenses);
+          
+          // Calculate total spent
+          const total = parsedExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
+          setTotalSpent(total);
+          
+          // Calculate remaining budget
+          const budget = parseFloat(localStorage.getItem('blueflow_budget_amount') || '500');
+          setRemainingBudget(budget - total);
+        }
       }
     };
 
@@ -95,6 +135,25 @@ export default function SimpleHome() {
     window.addEventListener('expenseAdded', handleExpenseAdded);
     return () => window.removeEventListener('expenseAdded', handleExpenseAdded);
   }, []);
+
+  // Start onboarding for new users
+  useEffect(() => {
+    if (isNewUser && !isOnboardingActive) {
+      // Delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        startOnboarding();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isNewUser, isOnboardingActive, startOnboarding]);
+
+  // Update tooltip positions when current step changes
+  useEffect(() => {
+    if (isOnboardingActive && currentStepData) {
+      updateTooltipPosition(currentStepData.targetElement);
+    }
+  }, [currentStep, isOnboardingActive, currentStepData, updateTooltipPosition]);
 
   const initializeDemoNotifications = () => {
     const existingNotifications = AIAssistant.getRecentNotifications();
@@ -378,6 +437,7 @@ export default function SimpleHome() {
           className="flex gap-3 mb-4"
         >
           <button
+            id="add-expense-button"
             onClick={() => setShowAddExpenseModal(true)}
             className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
           >
@@ -385,6 +445,7 @@ export default function SimpleHome() {
           </button>
           
           <button
+            id="add-income-button"
             onClick={() => setShowAddIncomeModal(true)}
             className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
           >
@@ -416,6 +477,21 @@ export default function SimpleHome() {
             setShowAddIncomeModal(false);
           }}
         />
+
+        {/* Onboarding Tooltip */}
+        {isOnboardingActive && currentStepData && (
+          <OnboardingTooltip
+            isVisible={true}
+            title={currentStepData.title}
+            description={currentStepData.description}
+            step={currentStep + 1}
+            totalSteps={totalSteps}
+            position={tooltipPosition}
+            onNext={nextStep}
+            onSkip={skipOnboarding}
+            isLastStep={currentStep === totalSteps - 1}
+          />
+        )}
         
       </div>
     </ResponsiveContainer>
