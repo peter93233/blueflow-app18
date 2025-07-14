@@ -11,6 +11,7 @@ import SimpleHome from "@/pages/simple-home";
 import SimpleBudgetSettings from "@/pages/simple-budget-settings";
 import SimpleReports from "@/pages/simple-reports";
 import ArchiveViewer from "@/pages/archive-viewer";
+import { MemoryPage } from "@/pages/memory";
 import AddExpense from "@/pages/add-expense";
 import { Login } from "@/pages/login";
 import NotFound from "@/pages/not-found";
@@ -44,6 +45,11 @@ function Router() {
       <Route path="/archive">
         <AuthGuard>
           <ArchiveViewer />
+        </AuthGuard>
+      </Route>
+      <Route path="/memory">
+        <AuthGuard>
+          <MemoryPage />
         </AuthGuard>
       </Route>
       <Route component={NotFound} />

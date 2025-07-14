@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { LogOut, Mic } from "lucide-react";
+import { LogOut, Mic, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
+import { AddIncomeModal } from "@/components/ui/add-income-modal";
 import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { BalanceCard } from "@/components/dashboard/balance-card";
@@ -32,6 +33,7 @@ export default function SimpleHome() {
   const [showBalanceEdit, setShowBalanceEdit] = useState(false);
   const [newBalance, setNewBalance] = useState("");
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(500);
@@ -368,6 +370,29 @@ export default function SimpleHome() {
             </div>
         </motion.div>
 
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="flex gap-3 mb-4"
+        >
+          <button
+            onClick={() => setShowAddExpenseModal(true)}
+            className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
+          >
+            <span className="text-sm font-medium">Add Expense</span>
+          </button>
+          
+          <button
+            onClick={() => setShowAddIncomeModal(true)}
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span className="text-sm font-medium">Add Income</span>
+          </button>
+        </motion.div>
+
         {/* Bottom Navigation */}
         <BottomNavigation />
 
@@ -378,6 +403,18 @@ export default function SimpleHome() {
         <SimpleExpenseModal 
           isOpen={showAddExpenseModal} 
           onClose={() => setShowAddExpenseModal(false)} 
+        />
+
+        {/* Add Income Modal */}
+        <AddIncomeModal
+          isOpen={showAddIncomeModal}
+          onClose={() => setShowAddIncomeModal(false)}
+          onAddIncome={(income) => {
+            // TODO: Handle income addition
+            console.log('Income added:', income);
+            // For now, just close the modal
+            setShowAddIncomeModal(false);
+          }}
         />
         
       </div>

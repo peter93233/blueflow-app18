@@ -3,11 +3,19 @@ import {
   expenses,
   budgets,
   userBalances,
+  incomes,
+  userSettings,
+  archives,
+  archiveDetails,
   type User,
   type UpsertUser,
   type Expense,
   type Budget,
   type UserBalance,
+  type Income,
+  type UserSettings,
+  type Archive,
+  type ArchiveDetail,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -29,6 +37,18 @@ export interface IStorage {
   }): Promise<Expense>;
   getExpensesByUserId(userId: string): Promise<Expense[]>;
   getExpensesByUserIdAndDateRange(userId: string, startDate: Date, endDate: Date): Promise<Expense[]>;
+  deleteExpensesByUserId(userId: string): Promise<void>;
+  
+  // Income methods
+  createIncome(income: {
+    userId: string;
+    amount: string;
+    source: string;
+    date: Date;
+  }): Promise<Income>;
+  getIncomesByUserId(userId: string): Promise<Income[]>;
+  getIncomesByUserIdAndDateRange(userId: string, startDate: Date, endDate: Date): Promise<Income[]>;
+  deleteIncomesByUserId(userId: string): Promise<void>;
   
   // Budget methods
   createOrUpdateBudget(budget: {
@@ -37,6 +57,7 @@ export interface IStorage {
     period: string;
   }): Promise<Budget>;
   getBudgetByUserId(userId: string): Promise<Budget | undefined>;
+  deleteBudgetByUserId(userId: string): Promise<void>;
   
   // User balance methods
   createOrUpdateUserBalance(balance: {
@@ -44,6 +65,44 @@ export interface IStorage {
     balance: string;
   }): Promise<UserBalance>;
   getUserBalanceByUserId(userId: string): Promise<UserBalance | undefined>;
+  
+  // User settings methods
+  createOrUpdateUserSettings(settings: {
+    userId: string;
+    budgetCycle: 'biweekly' | 'monthly' | 'six_months';
+    lastResetDate: Date;
+    nextResetDate: Date;
+    autoResetEnabled: number;
+  }): Promise<UserSettings>;
+  getUserSettingsByUserId(userId: string): Promise<UserSettings | undefined>;
+  
+  // Archive methods
+  createArchive(archive: {
+    userId: string;
+    periodType: string;
+    startDate: Date;
+    endDate: Date;
+    initialBalance: string;
+    finalBalance: string;
+    totalExpenses: string;
+    totalIncomes: string;
+    netResult: string;
+    expenseCount: number;
+    incomeCount: number;
+  }): Promise<Archive>;
+  getArchivesByUserId(userId: string): Promise<Archive[]>;
+  
+  // Archive details methods
+  createArchiveDetail(detail: {
+    archiveId: number;
+    type: 'expense' | 'income';
+    name: string;
+    amount: string;
+    category?: string;
+    source?: string;
+    originalDate: Date;
+  }): Promise<ArchiveDetail>;
+  getArchiveDetailsByArchiveId(archiveId: number): Promise<ArchiveDetail[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -198,6 +257,143 @@ export class DatabaseStorage implements IStorage {
       .from(userBalances)
       .where(eq(userBalances.userId, userId));
     return balance;
+  }
+
+  // Income operations
+  async createIncome(incomeData: {
+    userId: string;
+    amount: string;
+    source: string;
+    date: Date;
+  }): Promise<Income> {
+    const [income] = await db
+      .insert(incomes)
+      .values(incomeData)
+      .returning();
+    return income;
+  }
+
+  async getIncomesByUserId(userId: string): Promise<Income[]> {
+    return await db
+      .select()
+      .from(incomes)
+      .where(eq(incomes.userId, userId))
+      .orderBy(desc(incomes.date));
+  }
+
+  async getIncomesByUserIdAndDateRange(userId: string, startDate: Date, endDate: Date): Promise<Income[]> {
+    return await db
+      .select()
+      .from(incomes)
+      .where(
+        and(
+          eq(incomes.userId, userId),
+          gte(incomes.date, startDate),
+          lte(incomes.date, endDate)
+        )
+      )
+      .orderBy(desc(incomes.date));
+  }
+
+  async deleteIncomesByUserId(userId: string): Promise<void> {
+    await db.delete(incomes).where(eq(incomes.userId, userId));
+  }
+
+  // Expense deletion for auto-reset
+  async deleteExpensesByUserId(userId: string): Promise<void> {
+    await db.delete(expenses).where(eq(expenses.userId, userId));
+  }
+
+  // Budget deletion for auto-reset
+  async deleteBudgetByUserId(userId: string): Promise<void> {
+    await db.delete(budgets).where(eq(budgets.userId, userId));
+  }
+
+  // User settings operations
+  async createOrUpdateUserSettings(settingsData: {
+    userId: string;
+    budgetCycle: 'biweekly' | 'monthly' | 'six_months';
+    lastResetDate: Date;
+    nextResetDate: Date;
+    autoResetEnabled: number;
+  }): Promise<UserSettings> {
+    const [settings] = await db
+      .insert(userSettings)
+      .values(settingsData)
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: {
+          budgetCycle: settingsData.budgetCycle,
+          lastResetDate: settingsData.lastResetDate,
+          nextResetDate: settingsData.nextResetDate,
+          autoResetEnabled: settingsData.autoResetEnabled,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return settings;
+  }
+
+  async getUserSettingsByUserId(userId: string): Promise<UserSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId));
+    return settings;
+  }
+
+  // Archive operations
+  async createArchive(archiveData: {
+    userId: string;
+    periodType: string;
+    startDate: Date;
+    endDate: Date;
+    initialBalance: string;
+    finalBalance: string;
+    totalExpenses: string;
+    totalIncomes: string;
+    netResult: string;
+    expenseCount: number;
+    incomeCount: number;
+  }): Promise<Archive> {
+    const [archive] = await db
+      .insert(archives)
+      .values(archiveData)
+      .returning();
+    return archive;
+  }
+
+  async getArchivesByUserId(userId: string): Promise<Archive[]> {
+    return await db
+      .select()
+      .from(archives)
+      .where(eq(archives.userId, userId))
+      .orderBy(desc(archives.endDate));
+  }
+
+  // Archive details operations
+  async createArchiveDetail(detailData: {
+    archiveId: number;
+    type: 'expense' | 'income';
+    name: string;
+    amount: string;
+    category?: string;
+    source?: string;
+    originalDate: Date;
+  }): Promise<ArchiveDetail> {
+    const [detail] = await db
+      .insert(archiveDetails)
+      .values(detailData)
+      .returning();
+    return detail;
+  }
+
+  async getArchiveDetailsByArchiveId(archiveId: number): Promise<ArchiveDetail[]> {
+    return await db
+      .select()
+      .from(archiveDetails)
+      .where(eq(archiveDetails.archiveId, archiveId))
+      .orderBy(desc(archiveDetails.originalDate));
   }
 }
 
