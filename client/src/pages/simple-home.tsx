@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, Mic, TrendingUp } from "lucide-react";
+import { LogOut, Mic, TrendingUp, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { SimpleExpenseModal } from "@/components/ui/simple-expense-modal";
@@ -8,6 +8,7 @@ import { OnboardingTooltip } from "@/components/ui/onboarding-tooltip";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { OnboardingDataManager } from "@/lib/onboarding-data";
 import { DataResetManager } from "@/lib/data-reset";
+import { ResetAppModal } from "@/components/ui/reset-app-modal";
 import { BlueFlowLogo } from "@/components/ui/blueflow-logo";
 import FloatingAIButton from "@/components/ui/floating-ai-button";
 import { BalanceCard } from "@/components/dashboard/balance-card";
@@ -41,6 +42,7 @@ export default function SimpleHome() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
   const [remainingBudget, setRemainingBudget] = useState(0);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Onboarding
   const {
@@ -214,6 +216,47 @@ export default function SimpleHome() {
       localStorage.setItem('blueflow_balance', amount.toString());
       setShowBalanceEdit(false);
       setNewBalance("");
+    }
+  };
+
+  const handleResetApp = async () => {
+    try {
+      // Update user onboarding status to trigger onboarding flow
+      const updateUserOnboardingStatus = async (isCompleted: boolean) => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const response = await fetch('/api/auth/complete-onboarding', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ isCompleted })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update onboarding status');
+          }
+        }
+      };
+
+      // Perform complete app reset
+      await DataResetManager.completeAppReset(updateUserOnboardingStatus);
+      
+      // Reset local state immediately
+      setExpenses([]);
+      setBalance(0);
+      setTotalSpent(0);
+      setRemainingBudget(0);
+      
+      // Close modal
+      setShowResetModal(false);
+      
+      // Refresh the page to show fresh state
+      window.location.reload();
+    } catch (error) {
+      console.error('Reset failed:', error);
+      alert('Reset failed. Please try again.');
     }
   };
 
@@ -487,6 +530,22 @@ export default function SimpleHome() {
           </button>
         </motion.div>
 
+        {/* Reset App Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mb-4"
+        >
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="w-full bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span className="text-sm font-medium">Reset App</span>
+          </button>
+        </motion.div>
+
         {/* Bottom Navigation */}
         <BottomNavigation />
 
@@ -525,6 +584,13 @@ export default function SimpleHome() {
             isLastStep={currentStep === totalSteps - 1}
           />
         )}
+
+        {/* Reset App Modal */}
+        <ResetAppModal
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          onConfirm={handleResetApp}
+        />
         
       </div>
     </ResponsiveContainer>
